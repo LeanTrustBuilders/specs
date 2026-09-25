@@ -87,16 +87,17 @@ made of it there:
 * **stale**: 153 read differently. 241 read the same: 106 because a `variable` line of their
   section changed (the statement did change: stale is right, but the change is outside the
   declaration's source range, so a page must show the elaborated statement, not only the source),
-  and 135 because a constant they use changed its signature, so that the same text now elaborates
-  with other instance or implicit arguments. For a reviewer, these are closer to stale underneath:
-  nothing in the declaration was rewritten.
+  and 135 whose section's variables did not change either. 73 of these are in files that did not
+  change at all; in the cases examined, a constant they use changed its signature, so that the same
+  text now elaborates with other instance or implicit arguments. For a reviewer, these are closer to
+  stale underneath: nothing in the declaration was rewritten.
 
 ## Known limits
 
 * The local hash sees elaboration details: a declaration whose text is unchanged, but whose use of
   a constant now elaborates with different implicit or instance arguments (because that constant's
-  signature changed), is **stale** rather than **stale underneath** (135 of 394 stale declarations
-  in the measurement above). A candidate fix for version 1 is a fourth hash, of the statement with
+  signature changed), is **stale** rather than **stale underneath** (up to 135 of 394 stale
+  declarations in the measurement above). A candidate fix for version 1 is a fourth hash, of the statement with
   implicit and instance arguments erased: a change of the local hash alone would then read as
   stale underneath.
 
