@@ -1,0 +1,23 @@
+name: Conformance
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 4 * * 1"   # weekly: evidence-core may have moved
+
+jobs:
+  vectors:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install evidence-core
+        run: pip install git+https://github.com/LeanTrustBuilders/evidence-core
+      - name: Schemas parse
+        run: for f in schemas/*.json; do python -c "import json; json.load(open('$f'))"; done
+      - name: Vectors
+        run: python scripts/check-vectors.py
