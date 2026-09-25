@@ -10,7 +10,7 @@ root = Path(__file__).resolve().parent.parent
 V = root / "vectors"
 errors = []
 
-for ds in ("fixture-a", "fixture-b"):
+for ds in ("fixture-a", "fixture-b", "fixture-b-partial"):
     meta = json.loads((V / ds / "meta.json").read_text())
     if meta.get("spec") != "ltb-dataset/0":
         errors.append(f"{ds}: spec")
@@ -47,19 +47,24 @@ try:
 except ImportError:
     print("evidence_core not installed: skipping the status check")
 else:
-    A, B = Dataset.load(V / "fixture-a"), Dataset.load(V / "fixture-b")
-    expected = json.loads((V / "expected-status.json").read_text())
-    for r in rec.load(V / "records.jsonl"):
+    A = Dataset.load(V / "fixture-a")
+    records = rec.load(V / "records.jsonl")
+    for r in records:
         for e in rec.validate(r):
             errors.append(f"record {r.get('id')}: {e}")
-        if r["kind"] == "status":
-            continue
-        s = classify(r["subject"], B, old=A)
-        want = expected[r["id"]]
-        got = {"subject": r["subject"]["name"], "status": s.state,
-               "now": s.decl.name if s.decl else None, "changed": s.changed}
-        if got != want:
-            errors.append(f"record {r['id']}: expected {want}, got {got}")
+    # Statuses against version B, and against B extracted without `Fixture.Uses` (unavailable).
+    for ds, file in (("fixture-b", "expected-status.json"), ("fixture-b-partial", "expected-status-partial.json")):
+        now = Dataset.load(V / ds)
+        expected = json.loads((V / file).read_text())
+        for r in records:
+            if r["kind"] == "status":
+                continue
+            s = classify(r["subject"], now, old=A)
+            want = expected[r["id"]]
+            got = {"subject": r["subject"]["name"], "status": s.state,
+                   "now": s.decl.name if s.decl else None, "changed": s.changed}
+            if got != want:
+                errors.append(f"{ds}, record {r['id']}: expected {want}, got {got}")
 
 for e in errors:
     print(f"FAIL: {e}")

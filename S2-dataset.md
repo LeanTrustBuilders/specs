@@ -23,7 +23,7 @@ facets/<name>.jsonl         one file per facet
 |---|---|
 | `spec` | `"ltb-dataset/0"` |
 | `producer` | `{name, version}` of the tool |
-| `library` | `root` (module prefix), `package`, `repo` (`owner/name`), `commit`, `dirty` (uncommitted changes when extracted), `modules` (count) |
+| `library` | `root` (module prefix), `package`, `repo` (`owner/name`), `commit`, `dirty` (uncommitted changes when extracted), `modules` (count of the modules extracted), `unavailable` (the library's modules that were not extracted because they do not build at `commit`, with every module importing them; sorted, possibly empty) |
 | `toolchain` | the project's `lean-toolchain` |
 | `lean` | the Lean the producer ran on: `version`, `githash` |
 | `hasher` | `name`, `revision`, `meaning`, `content`, `local`: see S1 |

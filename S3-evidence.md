@@ -71,6 +71,7 @@ Against a dataset of the current code, a record whose subject has key `k` is:
 | `current` | a node named `k.name` has meaning hash `k.hashes.meaning` |
 | `stale-underneath` | the node named `k.name` has another meaning hash but local hash `k.hashes.local` |
 | `stale` | the node named `k.name` has another local hash |
+| `unavailable` | no node is named `k.name`, and `k.module` is one of the dataset's `library.unavailable` modules (S2): it did not build at the dataset's commit, so the record cannot be checked |
 | `renamed` | no node is named `k.name`, and exactly one node (of the subject's kind, if several) has meaning hash `k.hashes.meaning` |
 | `orphaned` | otherwise |
 
