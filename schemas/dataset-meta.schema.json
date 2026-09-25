@@ -7,7 +7,8 @@
   "properties": {
     "spec": {"const": "ltb-dataset/0"},
     "producer": {"type": "object", "required": ["name", "version"],
-                 "properties": {"name": {"type": "string"}, "version": {"type": "string"}}},
+                 "properties": {"name": {"type": "string"}, "version": {"type": "string"},
+                                "parts": {"type": "integer", "minimum": 1}}},
     "library": {"type": "object", "required": ["root", "package", "commit"],
                 "properties": {"root": {"type": "string"}, "package": {"type": "string"},
                                "repo": {"type": "string"}, "commit": {"type": "string"},

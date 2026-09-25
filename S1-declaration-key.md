@@ -101,6 +101,11 @@ made of it there:
   implicit and instance arguments erased: a change of the local hash alone would then read as
   stale underneath.
 
+* The content hash can depend on how an extraction was split (S2): a proof that rests on an
+  auxiliary lemma Lean generated separately in several modules (`congr_simp`, equation lemmas) is
+  hashed with whichever copy the environment holds. On Tau Ceti at 8befae0, 287 content hashes out
+  of 97,944 differed between 4 and 8 parts. The meaning and local hashes, which key records, did
+  not.
 * Hashes are 64-bit. A change goes unnoticed only if the new hash equals the old one, with
   probability 2⁻⁶⁴. The chance that any two of 10⁵ declarations share a meaning hash by accident,
   which would make a rename ambiguous, is about 3·10⁻¹⁰.

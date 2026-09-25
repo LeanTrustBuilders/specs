@@ -22,7 +22,7 @@ facets/<name>.jsonl         one file per facet
 | field | meaning |
 |---|---|
 | `spec` | `"ltb-dataset/0"` |
-| `producer` | `{name, version}` of the tool |
+| `producer` | `{name, version}` of the tool, and optionally `parts`: how many parts the work was split into, for a tool that splits it (see below) |
 | `library` | `root` (module prefix), `package`, `repo` (`owner/name`), `commit`, `dirty` (uncommitted changes when extracted), `modules` (count of the modules extracted), `unavailable` (the library's modules that were not extracted because they do not build at `commit`, with every module importing them; sorted, possibly empty) |
 | `toolchain` | the project's `lean-toolchain` |
 | `lean` | the Lean the producer ran on: `version`, `githash` |
@@ -32,6 +32,13 @@ facets/<name>.jsonl         one file per facet
 | `facets` | one entry per facet file: `name`, `file`, `schema` (`<facet>/<version>`), `count`, `description` |
 
 A dataset carries no timestamp, so that extracting the same commit twice gives identical files.
+
+A tool that splits the work into parts (each importing part of the library) should produce the same
+dataset however it splits it. trust-extract does, with one exception it records: Lean generates
+some auxiliary lemmas on demand, several modules can hold their own copy, and the copy a part sees
+depends on what it imports. The content hashes and term edges that rest on such a lemma can then
+depend on the split, which is why `producer.parts` is recorded. Meaning and local hashes, statement
+and meaning edges, and facets do not depend on it.
 
 ## `decls.jsonl`
 
