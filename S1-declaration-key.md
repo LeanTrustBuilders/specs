@@ -41,7 +41,11 @@ constant contributing a hash of its *name* instead of its content:
 | definition | its type and its value |
 | inductive type, structure, class | its type, its number of parameters, and each constructor's type |
 
-It changes when the declaration itself is rewritten, and not when something it uses changes.
+It changes when the declaration itself is rewritten, and not when something it uses changes. It
+hashes the elaborated declaration, not its text, so it also changes when unchanged text elaborates
+differently: when a `variable` in scope changes (the statement really changed, though its source
+range reads the same), or when a constant it uses changes its implicit or instance arguments (see
+*Known limits*).
 
 ## How keys are compared
 
@@ -58,7 +62,43 @@ Hashes are comparable only when computed by the same hasher: the same semantic_h
 same local hash function. A consumer must treat keys from different hashers as incomparable, and a
 producer changing either must change its identifier.
 
+## Measured on Tau Ceti
+
+Between Tau Ceti d3aec47 and 8befae0 (428 commits in 29 hours, same toolchain and Mathlib; datasets
+by trust-extract 0.2), taking each of the 77,758 declarations of d3aec47 as if a review had been
+made of it there:
+
+| status at 8befae0 | declarations | share |
+|---|---:|---:|
+| current | 71,880 | 92.4% |
+| current, a proof in its closure changed | 4,112 | 5.3% |
+| stale underneath | 1,282 | 1.6% |
+| stale | 394 | 0.5% |
+| renamed | 21 | |
+| orphaned (removed) | 69 | |
+
+4,310 declarations were added. Against the source text at both commits:
+
+* **current**: a handful of declarations whose statement text changed are still current, rightly:
+  a name written fully qualified, or an attribute added;
+* **stale underneath**: 96% read exactly the same, as they should; most are downstream of a few
+  rewritten definitions (three rewritten weight tables are among the causes of 810, 319 and 300
+  of them);
+* **stale**: 153 read differently. 241 read the same: 106 because a `variable` line of their
+  section changed (the statement did change: stale is right, but the change is outside the
+  declaration's source range, so a page must show the elaborated statement, not only the source),
+  and 135 because a constant they use changed its signature, so that the same text now elaborates
+  with other instance or implicit arguments. For a reviewer, these are closer to stale underneath:
+  nothing in the declaration was rewritten.
+
 ## Known limits
+
+* The local hash sees elaboration details: a declaration whose text is unchanged, but whose use of
+  a constant now elaborates with different implicit or instance arguments (because that constant's
+  signature changed), is **stale** rather than **stale underneath** (135 of 394 stale declarations
+  in the measurement above). A candidate fix for version 1 is a fourth hash, of the statement with
+  implicit and instance arguments erased: a change of the local hash alone would then read as
+  stale underneath.
 
 * Hashes are 64-bit. A change goes unnoticed only if the new hash equals the old one, with
   probability 2⁻⁶⁴. The chance that any two of 10⁵ declarations share a meaning hash by accident,
