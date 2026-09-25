@@ -98,22 +98,19 @@ v4.34.0-rc2 to v4.34.0 and a Mathlib bump of 249 commits), of 81,999 declaration
 Only 74 of the 15,945 upstream declarations Tau Ceti rests on were rewritten, and 28 removed; 17,076
 of the stale-underneath declarations have only such upstream causes. The largest causes include
 real refactors of definitions (`Bialgebra`'s `toBialgHom` now built from `AlgHom.ofClass`), and
-`MeasureTheory.Lp`, of which only the proofs of the structure's fields were rewritten (826
-declarations).
+changes of signature: `MeasureTheory.eLpNorm` gained an instance argument `[TopologicalSpace ε]`, so
+`MeasureTheory.Lp`, whose source did not change, now elaborates with that argument, and its local
+hash changed with it (826 declarations rest on it).
 
 ## Known limits
 
-* Structural proof irrelevance leaks through definitions' field proofs. Lean lifts a proof inside a
-  definition's value into a `_proof_n` lemma, and applies it there to the variables the proof uses.
-  A rewritten proof can use other variables, or be numbered differently, so the definition's value
-  changes, and so do its local and meaning hashes: everything resting on it becomes stale
-  underneath although no statement changed (`MeasureTheory.Lp` above). A candidate fix for version 1
-  is a meaning hash that treats applications of `_proof_n` lemmas as opaque proofs.
 
 * The local hash sees elaboration details: a declaration whose text is unchanged, but whose use of
   a constant now elaborates with different implicit or instance arguments (because that constant's
   signature changed), is **stale** rather than **stale underneath** (up to 135 of 394 stale
-  declarations in the measurement above). A candidate fix for version 1 is a fourth hash, of the statement with
+  declarations in the measurement above). For the same reason, the rewritten dependencies a
+  **stale underneath** status names include such declarations besides the one really rewritten
+  (`MeasureTheory.Lp` besides `MeasureTheory.eLpNorm` above). A candidate fix for version 1 is a fourth hash, of the statement with
   implicit and instance arguments erased: a change of the local hash alone would then read as
   stale underneath.
 
