@@ -13,6 +13,7 @@ asserted by a person or an agent is an S3 evidence record, not part of a dataset
 ```
 meta.json
 decls.jsonl
+modules.jsonl               the project's modules (optional)
 edges/<notion>.bin          one file per notion of dependency
 facets/<name>.jsonl         one file per facet
 ```
@@ -30,6 +31,8 @@ facets/<name>.jsonl         one file per facet
 | `counts` | `nodes`, `project`, `upstream` |
 | `edges` | one entry per edge file: `name` (the notion), `file`, `format` (`i32le-pairs`), `count`, `description` |
 | `facets` | one entry per facet file: `name`, `file`, `schema` (`<facet>/<version>`), `count`, `description` |
+| `modules` | optional: `file` (`modules.jsonl`), `count` |
+| `packages` | optional: one entry per package the library imports, itself included: `name` (as in S1: the Lake package, `lean4` for the toolchain), `modules` (how many of its modules are imported), `requires` (the packages its imported modules import from, sorted) |
 
 A dataset carries no timestamp, so that extracting the same commit twice gives identical files.
 
@@ -39,6 +42,12 @@ some auxiliary lemmas on demand, several modules can hold their own copy, and th
 depends on what it imports. The content hashes and term edges that rest on such a lemma can then
 depend on the split, which is why `producer.parts` is recorded. Meaning and local hashes, statement
 and meaning edges, and facets do not depend on it.
+
+## `modules.jsonl`
+
+One line per extracted project module, sorted by name: `name`, `path` (the source file, relative to
+the project root), `imports` (the modules it imports, in order, without repetition), `doc` (its module
+docstrings, verbatim, in order).
 
 ## `decls.jsonl`
 
@@ -88,14 +97,17 @@ commit; that tool adds its entry to `meta.json`.
 | `docstring` | `docstring/1` | `text` |
 | `source` | `source/1` | `path` (relative to the project root), `start` and `end` as `[line, column]` (lines from 1, columns in UTF-16 code units from 0), `keyword` (as written: `theorem`, `lemma`, `def`, `abbrev`, `instance`, `structure`, `class`, `class inductive`, …) |
 | `axioms` | `axioms/1` | `axioms` (names, sorted), `sorry` (whether `sorryAx` is among them) |
-| `annotation.<attr>` | `annotation/1` | `payload`: the JSON recorded by the attribute `<attr>` in the TrustAnnotations extension |
+| `statement` | `statement/1` | the statement taken apart: `binders`, each with `name` (empty for one the source cannot name, such as an anonymous instance), `type`, `role` (`type`, `variable`, `hypothesis` or `instance`) and `explicit`; `conclusion` (what the type states under the binders); for a definition that is not a proof, `value` (its body, the binders in place); for a structure or class, `fields` (`name`, `type`); for another inductive type, `constructors` (`name`, `type`). All text is Lean's pretty-printing from inside the declaration's namespace; `⋯` marks what a bounded printer cut |
+| `annotation.<attr>` | `annotation/2` | `entries`: for each application of the attribute `<attr>` to the declaration, in order, the JSON it recorded in the TrustAnnotations extension (`annotation/1` had one `payload`, which lost repeated applications) |
 
-Annotations defined in [TrustAnnotations](https://github.com/LeanTrustBuilders/annotations) v0:
+Annotations defined in [TrustAnnotations](https://github.com/LeanTrustBuilders/annotations):
 
 | attribute | payload |
 |---|---|
 | `claim` | `{}` or `{"reference": "…"}` |
 | `example_of`, `nonexample_of` | `{"target": "<definition name>"}` |
+| `specifies` | `{"target": "<definition name>", "comment": "…"}`: the theorem is part of the specification of the definition; repeatable |
+| `characterization` | `{"role": "property" \| "existence" \| "uniqueness", "property": "<predicate>", "target": "<definition>", "relation": "…", "relationHead": "<constant>", "comment": "…"}`: the declaration's part in the characterization of `target` by `property`; `relation` is the uniqueness theorem's conclusion as written |
 
 New facets are added to this registry by pull request, so that two tools do not give one name two
 meanings.
