@@ -94,10 +94,11 @@ commit; that tool adds its entry to `meta.json`.
 
 | facet | schema | row fields |
 |---|---|---|
-| `docstring` | `docstring/1` | `text` |
+| `docstring` | `docstring/1` | `text`. Project nodes, and upstream nodes unless the producer leaves them out |
+| `signature` | `signature/1` | `text`: the node's signature as Lean prints it (`name (x : α) … : β`), for every node |
 | `source` | `source/1` | `path` (relative to the project root), `start` and `end` as `[line, column]` (lines from 1, columns in UTF-16 code units from 0), `keyword` (as written: `theorem`, `lemma`, `def`, `abbrev`, `instance`, `structure`, `class`, `class inductive`, …) |
 | `axioms` | `axioms/1` | `axioms` (names, sorted), `sorry` (whether `sorryAx` is among them) |
-| `statement` | `statement/1` | the statement taken apart: `binders`, each with `name` (empty for one the source cannot name, such as an anonymous instance), `type`, `role` (`type`, `variable`, `hypothesis` or `instance`) and `explicit`; `conclusion` (what the type states under the binders); for a definition that is not a proof, `value` (its body, the binders in place); for a structure or class, `fields` (`name`, `type`); for another inductive type, `constructors` (`name`, `type`). All text is Lean's pretty-printing from inside the declaration's namespace; `⋯` marks what a bounded printer cut |
+| `statement` | `statement/1` | the statement taken apart: `binders`, each with `name` (empty for one the source cannot name, such as an anonymous instance), `type`, `role` (`type`, `variable`, `hypothesis` or `instance`) and `explicit`; `conclusion` (what the type states under the binders); for a definition that is not a proof, `value` (its body, the binders in place); for a structure or class, `fields` (`name`, `type`); for another inductive type, `constructors` (`name`, `type`). All text is Lean's pretty-printing from inside the declaration's namespace; `⋯` marks what a bounded printer cut. Optionally, each text `t` comes with `tRefs` (`typeRefs`, `conclusionRefs`, `valueRefs`): `[start, stop, constant]` for each identifier, operator or notation in it that stands for a constant, positions in Unicode code points, innermost spans only; each binder names the `head` constant of its type, and `conclusionHead` that of the conclusion |
 | `annotation.<attr>` | `annotation/2` | `entries`: for each application of the attribute `<attr>` to the declaration, in order, the JSON it recorded in the TrustAnnotations extension (`annotation/1` had one `payload`, which lost repeated applications) |
 
 Annotations defined in [TrustAnnotations](https://github.com/LeanTrustBuilders/annotations):
