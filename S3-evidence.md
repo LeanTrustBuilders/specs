@@ -1,7 +1,8 @@
 # S3: evidence records (`ltb-evidence/0`)
 
 An **evidence record** is one judgement or fact about a declaration, asserted by a person, an agent
-or a tool: a review, a problem report, a link to a test, a named result. Records are JSON objects,
+or a tool: a review, a problem report, a link to a test, a proposed test (a challenge), a named
+result. Records are JSON objects,
 stored one per line (JSONL), **append-only**: a record is never edited; a later record supersedes,
 answers or resolves it.
 
@@ -20,9 +21,9 @@ Version 0 is a draft, changed in place while only the pilots use it.
 | field | required | meaning |
 |---|---|---|
 | `schema` | yes | `"ltb-evidence/0"` |
-| `kind` | yes | `review`, `comment`, `status`, `test` or `named` |
+| `kind` | yes | `review`, `comment`, `status`, `test`, `challenge` or `named` |
 | `id` | yes | the first 16 hex digits of the SHA-256 of the record's canonical form (below) |
-| `subject` | `review`, `test`, `named`; optional for `comment` | the S1 key of the declaration the record is about, plus `kind`: `definition`, `statement`, `instance`, `link` or `text` |
+| `subject` | `review`, `test`, `challenge`, `named`; optional for `comment` | the S1 key of the declaration the record is about, plus `kind`: `definition`, `statement`, `instance`, `link` or `text` |
 | `by` | yes | who made it (below) |
 | `at` | yes | when, RFC 3339 in UTC |
 | `origin` | no | where the record came from: `{kind, ref}`, e.g. `{"kind": "issue", "ref": "owner/repo#12"}` |
@@ -55,6 +56,7 @@ its UTF-8 bytes.
 | `reference` | encouraged | what the subject was compared with: `{text, url}` |
 | `checked` | encouraged | failure mode → `checked`, `unchecked` or `na` |
 | `caveats` | no | `[{category, note}]` |
+| `fix` | no | for problems: a suggested fix (Markdown, often Lean) |
 
 The failure modes are those of
 [`trusting-definitions.md`](https://github.com/LeanTrustBuilders/design/blob/main/AI_initial_docs/trusting-definitions.md) §2.
@@ -70,8 +72,9 @@ is that record's subject, when it has one. An answer to a question is a comment 
 
 ### `status`
 
-The state of an earlier record: `target` (a record id), `state`, and optionally `note` and `commit`
-(for `fixed`: the commit that fixed it).
+The state of an earlier record: `target` (a record id), `state`, and optionally `note`, `commit`
+(for `fixed`: the commit that fixed it) and `test` (for `met`: the S1 key, or at least the `name`, of
+the declaration that meets the challenge).
 
 | state | for | meaning |
 |---|---|---|
@@ -79,21 +82,49 @@ The state of an earlier record: `target` (a record id), `state`, and optionally 
 | `intended` | a problem | the behaviour is deliberate (and should be documented, ideally with an example) |
 | `invalid` | a problem | there was no problem |
 | `answered` | a question | it has an answer |
-| `reopened` | a problem or question | open again |
-| `withdrawn` | any review | its author takes it back |
+| `met` | a challenge | the library has a declaration that proves the property (`test`) |
+| `failed` | a challenge | the subject does not have the property: that is a problem with it |
+| `declined` | a challenge | it will not be written: not a useful test, or out of scope |
+| `reopened` | a problem, question or challenge | open again |
+| `withdrawn` | any record but a comment or status | its author takes it back |
 
-The latest status of a target, by `at`, is its state. A problem or question with none is **open**;
-an `accept` with none stands.
+The latest status of a target, by `at`, is its state. A problem, question or challenge with none is
+**open**; any other record with none stands.
 
 ### `test`
 
-`test`: the S1 key (or at least the `name`) of a declaration that tests the subject, and `checks`:
-what it checks.
+A declaration of the library that tests the subject: a lemma that pins it down (a value, a
+degenerate case, agreement with another notion). `test`: its S1 key, or at least its `name`;
+`checks`: what it checks (required of an agent); optionally `links.meets`, the challenge it meets.
+
+A test is a fact the kernel keeps checking: a view shows it as **passing** while a declaration of that
+name (or, when `test` has a meaning hash, of that meaning) is in the dataset without `sorry` in its
+axioms, and as **missing** or **with sorry** otherwise. It does not go stale as a review does.
+
+### `challenge`
+
+A **proposed test**: a property the subject should have, which anyone can then try to prove in the
+library (or refute). It is how people and agents who read a definition, without writing the library,
+say what would convince them it is right.
+
+| field | required | meaning |
+|---|---|---|
+| `property` | yes | what the subject should satisfy, in words (Markdown) |
+| `statement` | no | the property as a Lean statement |
+| `catches` | no | what a failure would reveal |
+| `modes` | no | the failure modes it would catch: `F1` … `F9`, `naming`, `other` (as `problem.category`) |
+| `rationale` | no | why it is a good test |
+
+A challenge is open until a status says it was `met` (with the declaration that meets it, which the
+views then check as a test), `failed` (which is a problem with the subject, reported as its own
+review), `declined` or `withdrawn`.
 
 ### `named`
 
-`name`, `what` (`result` or `definition`), `about`, `source`: the subject is a named result or
-notable definition.
+`name`, `what` (`result` or `definition`), `about` (a sentence), `source` (where the naming comes
+from: a URL, or `{roadmap, path}`, `{voyager, prs}` …): the subject is a named result or notable
+definition, one to read first in a library whose other declarations are mostly API and steps of
+proofs. It can be withdrawn by its author.
 
 ## Status of a record
 
@@ -139,10 +170,14 @@ the records are about, or another one.
 identity:
 
 * **intake from issues**: a bot turns an issue opened with one of the store's issue forms (a
-  review, a problem, a question) into a record, and each later comment on that issue into a
-  `comment` or, for a command such as `/fixed`, a `status`. The identity is the GitHub account that
-  wrote the issue or comment. An agent says so in the form, or with a line
-  `<!-- agent: tool=…; model=…; session=… -->` in a comment. `origin` records the issue or comment.
+  review, a problem, a question, a challenge, a test, a named result) into a record, and each later
+  comment on that issue into a `comment` or, for a command such as `/fixed`, a `status`. Closing or
+  reopening the issue by hand is a status too (closing a problem as completed says `fixed`, as not
+  planned `invalid`; a challenge, `met` or `declined`). Lines such as `Reviewed-by: <declaration> —
+  <note>` in a comment on the store's **bulk issue** are records of their own, one per line. The
+  identity is the GitHub account that wrote the issue, comment or closed it. An agent says so in the
+  form, or with a line `<!-- agent: tool=…; model=…; session=… -->` in a comment. `origin` records
+  the issue, comment, line or event.
 * **pull requests**: records added by a pull request must have the pull request's author as their
   identity.
 

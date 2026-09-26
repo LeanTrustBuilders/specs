@@ -20,6 +20,7 @@
     "comment",
     "status",
     "test",
+    "challenge",
     "named"
    ]
   },
@@ -132,6 +133,9 @@
     "intended",
     "invalid",
     "answered",
+    "met",
+    "failed",
+    "declined",
     "reopened",
     "withdrawn"
    ]
@@ -156,6 +160,29 @@
   },
   "commit": {
    "type": "string"
+  },
+  "property": {
+   "type": "string",
+   "description": "challenge: what the subject should satisfy (Markdown)"
+  },
+  "statement": {
+   "type": "string",
+   "description": "challenge: the property as a Lean statement"
+  },
+  "catches": {
+   "type": "string",
+   "description": "challenge: what a failure would reveal"
+  },
+  "modes": {
+   "type": "array",
+   "items": {
+    "$ref": "#/$defs/category"
+   },
+   "description": "challenge: the failure modes it would catch"
+  },
+  "fix": {
+   "type": "string",
+   "description": "problem: a suggested fix"
   }
  },
  "allOf": [
@@ -166,6 +193,7 @@
       "enum": [
        "review",
        "test",
+       "challenge",
        "named"
       ]
      }
@@ -262,6 +290,34 @@
       ]
      }
     }
+   }
+  },
+  {
+   "if": {
+    "properties": {
+     "kind": {
+      "const": "challenge"
+     }
+    }
+   },
+   "then": {
+    "required": [
+     "property"
+    ]
+   }
+  },
+  {
+   "if": {
+    "properties": {
+     "kind": {
+      "const": "test"
+     }
+    }
+   },
+   "then": {
+    "required": [
+     "test"
+    ]
    }
   }
  ],
