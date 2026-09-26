@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Checks the conformance vectors: dataset structure (stdlib only), records against the schema's
-required fields, and evidence-core's statuses against expected-status.json."""
+required fields, and evidence-core's statuses against expected-status.json. Also checks that the
+records of vectors/v0, keyed by the hashes of ltb-dataset/0, still get their statuses against the
+datasets of ltb-dataset/1, through the legacy hashes those carry."""
 import json
 import struct
 import sys
@@ -10,9 +12,11 @@ root = Path(__file__).resolve().parent.parent
 V = root / "vectors"
 errors = []
 
-for ds in ("fixture-a", "fixture-b", "fixture-b-partial"):
+for ds, spec in (("fixture-a", "ltb-dataset/1"), ("fixture-b", "ltb-dataset/1"),
+                 ("fixture-b-partial", "ltb-dataset/1"), ("v0/fixture-a", "ltb-dataset/0"),
+                 ("v0/fixture-b", "ltb-dataset/0"), ("v0/fixture-b-partial", "ltb-dataset/0")):
     meta = json.loads((V / ds / "meta.json").read_text())
-    if meta.get("spec") != "ltb-dataset/0":
+    if meta.get("spec") != spec:
         errors.append(f"{ds}: spec")
     decls = [json.loads(l) for l in (V / ds / "decls.jsonl").read_text().splitlines()]
     if [d["id"] for d in decls] != list(range(len(decls))):
@@ -65,6 +69,25 @@ else:
                    "now": s.decl.name if s.decl else None, "changed": s.changed}
             if got != want:
                 errors.append(f"{ds}, record {r['id']}: expected {want}, got {got}")
+
+    # Records keyed by the hashes of ltb-dataset/0, against datasets of ltb-dataset/1: re-keyed
+    # through version A (which carries both), they get the statuses they had; without version A,
+    # compared with the legacy hashes, the same statuses without the rewritten dependencies.
+    old_records = rec.load(V / "v0" / "records.jsonl")
+    for ds, file in (("fixture-b", "expected-status.json"), ("fixture-b-partial", "expected-status-partial.json")):
+        now = Dataset.load(V / ds)
+        expected = json.loads((V / "v0" / file).read_text())
+        for r in old_records:
+            if r["kind"] == "status":
+                continue
+            want = expected[r["id"]]
+            for old, changed in ((A, want["changed"]), (None, [])):
+                s = classify(r["subject"], now, old=old)
+                got = {"subject": r["subject"]["name"], "status": s.state,
+                       "now": s.decl.name if s.decl else None, "changed": s.changed}
+                if got != dict(want, changed=changed):
+                    errors.append(f"{ds}, v0 record {r['id']} ({'through A' if old else 'legacy'}): "
+                                  f"expected {dict(want, changed=changed)}, got {got}")
 
 for e in errors:
     print(f"FAIL: {e}")

@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/LeanTrustBuilders/specs/schemas/dataset-meta.schema.json",
-  "title": "S2 dataset meta.json (ltb-dataset/0)",
+  "title": "S2 dataset meta.json (ltb-dataset/1; ltb-dataset/0 is still read)",
   "type": "object",
   "required": ["spec", "producer", "library", "toolchain", "hasher", "counts", "edges", "facets"],
   "properties": {
-    "spec": {"const": "ltb-dataset/0"},
+    "spec": {"enum": ["ltb-dataset/1", "ltb-dataset/0"]},
     "producer": {"type": "object", "required": ["name", "version"],
                  "properties": {"name": {"type": "string"}, "version": {"type": "string"},
                                 "parts": {"type": "integer", "minimum": 1}}},
@@ -39,10 +39,23 @@
                               "description": {"type": "string"}}}}
   },
   "$defs": {
-    "hasher": {"type": "object", "required": ["name", "revision", "local"],
-               "properties": {"name": {"const": "semantic_hash"},
-                              "revision": {"type": ["string", "null"]},
-                              "meaning": {"type": "string"}, "content": {"type": "string"},
-                              "local": {"type": ["string", "null"]}}}
+    "semanticHash": {"type": "object", "required": ["name", "revision"],
+                     "properties": {"name": {"const": "semantic_hash"},
+                                    "revision": {"type": ["string", "null"]},
+                                    "variant": {"type": "string"}, "meaning": {"type": "string"},
+                                    "local": {"type": ["string", "null"]}}},
+    "hasher": {"oneOf": [
+      {"description": "ltb-dataset/1: the rule's meaning and local hashes, semantic_hash's content hash, and the hashes of ltb-dataset/0 as legacy",
+       "type": "object", "required": ["name", "meaning", "local", "content", "legacy"],
+       "properties": {"name": {"type": "string", "pattern": "^ltb-meaning/"},
+                      "meaning": {"type": "string"}, "local": {"type": "string"},
+                      "content": {"$ref": "#/$defs/semanticHash"},
+                      "legacy": {"$ref": "#/$defs/semanticHash"}}},
+      {"description": "ltb-dataset/0: semantic_hash's hashes, and the local hash ltb-local-v1",
+       "type": "object", "required": ["name", "revision", "local"],
+       "properties": {"name": {"const": "semantic_hash"},
+                      "revision": {"type": ["string", "null"]},
+                      "meaning": {"type": "string"}, "content": {"type": "string"},
+                      "local": {"type": ["string", "null"]}}}]}
   }
 }
