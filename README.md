@@ -7,19 +7,21 @@ Every tool reads or writes these, so any tool can be replaced by another that fo
 |---|---|---|
 | [S1: declaration key](S1-declaration-key.md) | 0 | how a declaration is identified *as it was at some point*: name at a commit and toolchain, and three hashes (meaning, content, local) |
 | [S2: dataset](S2-dataset.md) | `ltb-dataset/0` | what a tool knows about a compiled project, as files: nodes, edges by notion of dependency, and facets |
-| [S3: evidence records](S3-evidence.md) | `ltb-evidence/0` | judgements and facts about declarations: reviews, problem reports and their statuses, tests, named results |
+| [S3: evidence records](S3-evidence.md) | `ltb-evidence/0` | judgements and facts about declarations, never anonymous: reviews, problem reports and questions, the discussion and statuses about them, tests, named results; and the evidence stores that hold them (`ltb-evidence-store/0`) |
 
 The design they come from is in
 [LeanTrustBuilders/design](https://github.com/LeanTrustBuilders/design/tree/main/AI_initial_docs),
-in particular `suite-design.md` (the suite), `reviews.md` (the review fields), and
-`dependency-testing.md` (the notions of dependency).
+in particular `suite-design.md` (the suite), `reviews.md` (the review fields),
+`dependency-testing.md` (the notions of dependency), and `status.md` (what has been built).
 
 ## Implementations
 
 | role | implementation |
 |---|---|
 | writes S2, following S1 | [extractor](https://github.com/LeanTrustBuilders/extractor) (`trust-extract`) |
-| reads S2 and S3; computes statuses and coverage | [evidence-core](https://github.com/LeanTrustBuilders/evidence-core) |
+| reads S2 and S3; computes statuses, threads and coverage; reads and checks evidence stores | [evidence-core](https://github.com/LeanTrustBuilders/evidence-core) |
+| fills an evidence store from GitHub issues and comments, and checks changes to it | [evidence-store](https://github.com/LeanTrustBuilders/evidence-store) |
+| shows S2 and S3: a library's site, one claim's page with its reviews, trust's front end | [referee-site](https://github.com/LeanTrustBuilders/referee-site), [trust-web](https://github.com/LeanTrustBuilders/trust-web) |
 | records annotations exported as S2 facets | [annotations](https://github.com/LeanTrustBuilders/annotations) (`TrustAnnotations`) |
 
 ## Schemas
