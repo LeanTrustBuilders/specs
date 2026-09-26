@@ -33,6 +33,7 @@ facets/<name>.jsonl         one file per facet
 | `facets` | one entry per facet file: `name`, `file`, `schema` (`<facet>/<version>`), `count`, `description` |
 | `modules` | optional: `file` (`modules.jsonl`), `count` |
 | `packages` | optional: one entry per package the library imports, itself included: `name` (as in S1: the Lake package, `lean4` for the toolchain), `modules` (how many of its modules are imported), `requires` (the packages its imported modules import from, sorted) |
+| `upstreamClosure` | optional, present when the dataset follows dependencies past the project (see below): `follow` (the notion followed: `statement`, `meaning` or `term`) and `display` (which constants count as declarations: `authored`) |
 
 A dataset carries no timestamp, so that extracting the same commit twice gives identical files.
 
@@ -64,13 +65,14 @@ One JSON object per line, one line per **node**, in id order:
 
 **Nodes** are the project's own declarations (written by a person; not the constructors, recursors,
 projections and helpers the compiler generates) and the upstream constants that their statements and
-data mention. **Order:** project nodes by module name, then by position in the module; then upstream
-nodes by name.
+data mention; with an upstream closure, also every upstream declaration it reaches. **Order:** project
+nodes by module name, then by position in the module; then upstream nodes by name.
 
 ## Edge files
 
-Little-endian 32-bit integer pairs `(source id, target id)`, one file per notion of dependency. Only
-project nodes have outgoing edges; upstream nodes are where a closure leaves the project.
+Little-endian 32-bit integer pairs `(source id, target id)`, one file per notion of dependency. In the
+three notions below only project nodes have outgoing edges; upstream nodes are where a closure
+leaves the project.
 
 | notion | edges from a declaration to |
 |---|---|
@@ -80,6 +82,28 @@ project nodes have outgoing edges; upstream nodes are where a closure leaves the
 
 Compiler-generated helpers are looked through: an edge to a helper is replaced by edges to what it
 uses. Notation and coercion instances a declaration's source relies on count as dependencies.
+
+### Past the project
+
+A dataset can also follow dependencies into the libraries underneath (`meta.upstreamClosure`).
+Starting from the upstream targets of the project's `statement` and `meaning` edges (and, when the
+closure follows `term`, of the `term` edges of the project's declarations that are not proofs), it
+follows, from each upstream declaration reached, the notion named by `follow`: from a proof, its
+statement only; from anything else, `statement`, `meaning` or `term` as named. Every declaration
+reached is a node, and its edges are in three more files:
+
+| notion | edges |
+|---|---|
+| `upstream-statement` | `statement`, from the upstream nodes the closure reached |
+| `upstream-meaning` | `meaning`, from the same |
+| `upstream-term` | `term`, from those of them that are not proofs: an upstream proof term is not walked |
+
+Past the project, helpers are looked through wherever they come from, and notation and coercion
+instances are not recovered (they serve a project's source). The three project notions, the hashes
+and the facets of project nodes are the same with or without a closure, except that `term`, which
+keeps targets that are nodes, keeps the ones the closure added. A reader that wants the whole graph
+takes the union of a notion and its `upstream-` companion; a reader that does not know the
+`upstream-` notions sees the project's graph, with more upstream nodes.
 
 ## Facets
 
@@ -95,10 +119,10 @@ commit; that tool adds its entry to `meta.json`.
 | facet | schema | row fields |
 |---|---|---|
 | `docstring` | `docstring/1` | `text`. Project nodes, and upstream nodes unless the producer leaves them out |
-| `signature` | `signature/1` | `text`: the node's signature as Lean prints it (`name (x : α) … : β`), for every node |
+| `signature` | `signature/1` | `text`: the node's signature as Lean prints it (`name (x : α) … : β`), for every node; optionally `refs`, as in `statement` (the declaration's own name left out) |
 | `source` | `source/1` | `path` (relative to the project root), `start` and `end` as `[line, column]` (lines from 1, columns in UTF-16 code units from 0), `keyword` (as written: `theorem`, `lemma`, `def`, `abbrev`, `instance`, `structure`, `class`, `class inductive`, …) |
 | `axioms` | `axioms/1` | `axioms` (names, sorted), `sorry` (whether `sorryAx` is among them) |
-| `statement` | `statement/1` | the statement taken apart: `binders`, each with `name` (empty for one the source cannot name, such as an anonymous instance), `type`, `role` (`type`, `variable`, `hypothesis` or `instance`) and `explicit`; `conclusion` (what the type states under the binders); for a definition that is not a proof, `value` (its body, the binders in place); for a structure or class, `fields` (`name`, `type`); for another inductive type, `constructors` (`name`, `type`). All text is Lean's pretty-printing from inside the declaration's namespace; `⋯` marks what a bounded printer cut. Optionally, each text `t` comes with `tRefs` (`typeRefs`, `conclusionRefs`, `valueRefs`): `[start, stop, constant]` for each identifier, operator or notation in it that stands for a constant, positions in Unicode code points, innermost spans only; each binder names the `head` constant of its type, and `conclusionHead` that of the conclusion |
+| `statement` | `statement/1` | the statement taken apart: `binders`, each with `name` (empty for one the source cannot name, such as an anonymous instance), `type`, `role` (`type`, `variable`, `hypothesis` or `instance`) and `explicit`; `conclusion` (what the type states under the binders); for a definition that is not a proof, `value` (its body, the binders in place); for a structure or class, `fields` (`name`, `type`); for another inductive type, `constructors` (`name`, `type`). Project nodes, and with an upstream closure the upstream nodes it reached that are not proofs. All text is Lean's pretty-printing from inside the declaration's namespace; `⋯` marks what a bounded printer cut. Optionally, each text `t` comes with `tRefs` (`typeRefs`, `conclusionRefs`, `valueRefs`): `[start, stop, constant]` for each identifier, operator or notation in it that stands for a constant, positions in Unicode code points, innermost spans only; each binder names the `head` constant of its type, and `conclusionHead` that of the conclusion |
 | `annotation.<attr>` | `annotation/2` | `entries`: for each application of the attribute `<attr>` to the declaration, in order, the JSON it recorded in the TrustAnnotations extension (`annotation/1` had one `payload`, which lost repeated applications) |
 
 Annotations defined in [TrustAnnotations](https://github.com/LeanTrustBuilders/annotations):

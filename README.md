@@ -37,6 +37,8 @@ JSON Schemas (draft 2020-12) for `meta.json`, the lines of `decls.jsonl`, and ev
   (`triple_three` to `triple_three'`);
 * `fixture-b-partial/`: version B extracted as if the module `Fixture.Uses` did not build: it and
   the root module, which imports it, are listed in `library.unavailable`;
+* `fixture-b-closure/`: version B extracted with `--upstream-closure term`: the upstream
+  declarations the closure reaches are nodes, with edges of their own (`upstream-<notion>`);
 * `records.jsonl`: reviews made against version A, a problem report, and a status closing it;
 * `expected-status.json`: the status each record must have against version B, with the rewritten
   dependencies named when version A is available, and `expected-status-partial.json` against
