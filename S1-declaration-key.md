@@ -13,7 +13,7 @@ carries the key of its subject; every dataset (S2) carries the key of each of it
 | `package` | string | the Lake package of that module (`lean4` for the toolchain) |
 | `commit` | string | the commit of the project the key was taken at |
 | `toolchain` | string | the Lean toolchain of that commit, e.g. `leanprover/lean4:v4.34.0-rc2` |
-| `hasher` | object | how the hashes were computed: `meaning` (the rule, `ltb-meaning/1`), `local` (`ltb-local/2`), and in a dataset `content` (`ltb-content/1`). Each name is its version |
+| `hasher` | object | how the hashes were computed: `meaning` (the rule, `ltb-meaning/1`), `local` (`ltb-local/3`), and in a dataset `content` (`ltb-content/1`). Each name is its version |
 | `hashes.meaning` | 16 hex digits | the rule's **meaning** hash (below) |
 | `hashes.local` | 16 hex digits | the rule's **local** hash (below) |
 | `hashes.content` | 16 hex digits | in a dataset: the rule's **content** hash (below), proofs included |
@@ -46,9 +46,10 @@ nor those of the constants it refers to, nor binder names, binder kinds, metadat
 universe parameters. So it identifies a declaration across renames, and a proof change anywhere
 never changes it.
 
-**local** (`ltb-local/2`) is a hash of the same content with references to other declarations, and
+**local** (`ltb-local/3`) is a hash of the same content with references to other declarations, and
 to the helpers they own, by *name*; the helpers the declaration owns (`foo.match_1`, …) and helpers
-nobody owns are looked through. It changes when the declaration itself is rewritten, and not when
+nobody owns are looked through. A helper's owner is the longest prefix of its name that names a
+declaration (for a private helper, a private declaration of its module first). It changes when the declaration itself is rewritten, and not when
 something it uses changes. It hashes the elaborated declaration, not its text, so it also changes
 when unchanged text elaborates differently: when a `variable` in scope changes, or when a constant
 it uses changes its implicit or instance arguments (see *Known limits*).

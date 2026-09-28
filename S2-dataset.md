@@ -27,7 +27,7 @@ facets/<name>.jsonl         one file per facet
 | `library` | `root` (module prefix), `package`, `repo` (`owner/name`), `commit`, `dirty` (uncommitted changes when extracted), `unavailable` (the library's modules that were not extracted because they do not build at `commit`, with every module importing them; sorted, possibly empty) |
 | `toolchain` | the project's `lean-toolchain` |
 | `lean` | the Lean the producer ran on: `version`, `githash` |
-| `hasher` | see S1: `meaning` (the rule, `ltb-meaning/1`), `local` (`ltb-local/2`) and `content` (`ltb-content/1`) |
+| `hasher` | see S1: `meaning` (the rule, `ltb-meaning/1`), `local` (`ltb-local/3`) and `content` (`ltb-content/1`) |
 | `counts` | `nodes`, `project`, `upstream` |
 | `edges` | one entry per edge file: `name` (the notion), `file`, `format` (`i32le-pairs`), `count`, `description` |
 | `facets` | one entry per facet file: `name`, `file`, `schema` (`<facet>/<version>`), `count`, `description` |
@@ -66,8 +66,8 @@ One JSON object per line, one line per **node**, in id order:
 
 **Nodes** are the project's own declarations (written by a person, private ones included; not the
 constructors, recursors, projections, matchers and other helpers the compiler generates) and the
-upstream declarations their statements and meanings rest on; with an upstream closure, also every
-upstream declaration it reaches. Which constants are declarations is the rule's (S1). **Order:** project
+upstream declarations their edges point to, in every notion: so that each graph reaches everything its
+hash covers (S1). With an upstream closure, also every upstream declaration it reaches. Which constants are declarations is the rule's (S1). **Order:** project
 nodes by module name, then by position in the module; then upstream nodes by name.
 
 ## Edge files
@@ -80,7 +80,7 @@ leaves the project.
 |---|---|
 | `statement` | the declarations its type mentions, proofs erased |
 | `meaning` | what it means under the rule of S1: the declarations its content mentions (its statement for a proof; its statement and value for a definition; its type and constructors for an inductive type), proofs erased everywhere. The closure over these edges is what coverage is computed over, and what the meaning hash covers |
-| `term` | what its content mentions with nothing erased: everything the kernel checked of it (S1, the content hash), proofs included. Restricted to targets that are nodes. The closure over these edges is what the content hash covers |
+| `term` | what its content mentions with nothing erased: everything the kernel checked of it (S1, the content hash), proofs included. The closure over these edges is what the content hash covers |
 | `source` | what its source relies on that its elaborated term does not mention: the coercion instances behind its `↑`, and for a notation, the constants it expands to. What a standalone file must bring along; not meaning |
 
 Helpers are looked through, in every notion: an edge to a helper is replaced by edges to the
@@ -104,8 +104,7 @@ reached is a node, and its edges are in three more files:
 
 Past the project, helpers are looked through wherever they come from, and there are no `source`
 edges (they serve a project's source). The project notions, the hashes
-and the facets of project nodes are the same with or without a closure, except that `term`, which
-keeps targets that are nodes, keeps the ones the closure added. A reader that wants the whole graph
+and the facets of project nodes are the same with or without a closure. A reader that wants the whole graph
 takes the union of a notion and its `upstream-` companion; a reader that does not know the
 `upstream-` notions sees the project's graph, with more upstream nodes.
 
@@ -179,9 +178,12 @@ facet schema or notion does.
 * `hasher` is `{meaning, local, content}`, each the name of its hasher (version 1 had `name` for the
   rule and a `revision`);
 * the version-0 hashes are gone: no `hashes.legacy`, no `hasher.legacy`;
-* `library.modules` is gone: `modules.count` says the same.
+* `library.modules` is gone: `modules.count` says the same;
+* `term` is what the content hash covers (S1), and every declaration an edge points to is a node, in
+  every notion: nodes include the lemmas only proofs use;
+* the local hash is `ltb-local/3`: a helper's owner is read off the environment (S1).
 
-Nodes, edges, facets and the meaning and local hashes are as in version 1.
+Edges, facets and the meaning hash are otherwise as in version 1.
 
 `ltb-dataset/1` (September 2026) changed from `ltb-dataset/0`:
 * the meaning and local hashes are the rule's (S1 version 1), and each node carries its version-0

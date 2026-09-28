@@ -33,7 +33,7 @@ JSON Schemas (draft 2020-12) for `meta.json`, the lines of `decls.jsonl`, and ev
 
 [`vectors/`](vectors/) holds:
 
-* `fixture-a/` and `fixture-b/`: two datasets written by the extractor (0.11.0) from a small project
+* `fixture-a/` and `fixture-b/`: two datasets written by the extractor (0.12.0) from a small project
   in two versions. Version B changes a definition (`double`), rewrites a statement (`triple_one`), changes
   only a proof (`triple_two`), renames a binder (`triple_comm`), and renames a theorem
   (`triple_three` to `triple_three'`);
