@@ -3,48 +3,248 @@
   "$id": "https://github.com/LeanTrustBuilders/specs/schemas/dataset-meta.schema.json",
   "title": "S2 dataset meta.json (ltb-dataset/2)",
   "type": "object",
-  "required": ["spec", "producer", "library", "toolchain", "hasher", "counts", "edges", "facets"],
+  "required": [
+    "spec",
+    "producer",
+    "library",
+    "toolchain",
+    "hasher",
+    "counts",
+    "edges",
+    "facets"
+  ],
   "properties": {
-    "spec": {"const": "ltb-dataset/2"},
-    "producer": {"type": "object", "required": ["name", "version"],
-                 "properties": {"name": {"type": "string"}, "version": {"type": "string"},
-                                "parts": {"type": "integer", "minimum": 1}}},
-    "library": {"type": "object", "required": ["root", "package", "commit"],
-                "properties": {"root": {"type": "string"}, "package": {"type": "string"},
-                               "repo": {"type": "string"}, "commit": {"type": "string"},
-                               "dirty": {"type": "boolean"}, "modules": {"type": "integer"},
-                               "unavailable": {"type": "array", "items": {"type": "string"}}}},
-    "toolchain": {"type": "string"},
-    "lean": {"type": "object"},
-    "hasher": {"$ref": "#/$defs/hasher"},
-    "counts": {"type": "object", "required": ["nodes", "project", "upstream"],
-               "additionalProperties": {"type": "integer", "minimum": 0}},
-    "edges": {"type": "array", "items": {"type": "object",
-              "required": ["name", "file", "format", "count"],
-              "properties": {"name": {"type": "string"}, "file": {"type": "string"},
-                             "format": {"const": "i32le-pairs"},
-                             "count": {"type": "integer", "minimum": 0},
-                             "description": {"type": "string"}}}},
-    "modules": {"type": "object", "required": ["file", "count"],
-                "properties": {"file": {"type": "string"}, "count": {"type": "integer", "minimum": 0}}},
-    "packages": {"type": "array", "items": {"type": "object", "required": ["name", "modules", "requires"],
-                 "properties": {"name": {"type": "string"},
-                                "modules": {"type": "integer", "minimum": 0},
-                                "requires": {"type": "array", "items": {"type": "string"}}}}},
-    "facets": {"type": "array", "items": {"type": "object",
-               "required": ["name", "file", "schema", "count"],
-               "properties": {"name": {"type": "string"}, "file": {"type": "string"},
-                              "schema": {"type": "string", "pattern": "^[a-z_.]+/[0-9]+$"},
-                              "count": {"type": "integer", "minimum": 0},
-                              "description": {"type": "string"}}}}
+    "spec": {
+      "const": "ltb-dataset/2"
+    },
+    "producer": {
+      "type": "object",
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "parts": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "library": {
+      "type": "object",
+      "required": [
+        "root",
+        "package",
+        "commit"
+      ],
+      "properties": {
+        "root": {
+          "type": "string"
+        },
+        "package": {
+          "type": "string"
+        },
+        "repo": {
+          "type": "string"
+        },
+        "commit": {
+          "type": "string"
+        },
+        "dirty": {
+          "type": "boolean"
+        },
+        "unavailable": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "toolchain": {
+      "type": "string"
+    },
+    "lean": {
+      "type": "object"
+    },
+    "hasher": {
+      "$ref": "#/$defs/hasher"
+    },
+    "counts": {
+      "type": "object",
+      "required": [
+        "nodes",
+        "project",
+        "upstream"
+      ],
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "file",
+          "format",
+          "count"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string"
+          },
+          "format": {
+            "const": "i32le-pairs"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "modules": {
+      "type": "object",
+      "required": [
+        "file",
+        "count"
+      ],
+      "properties": {
+        "file": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "the modules extracted"
+        }
+      }
+    },
+    "packages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "modules",
+          "requires"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "modules": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "requires": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "facets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "file",
+          "schema",
+          "count"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string"
+          },
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z_.]+/[0-9]+$"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "merged": {
+      "type": "array",
+      "description": "a merged dataset only (S2, Merged datasets)",
+      "items": {
+        "type": "object",
+        "required": [
+          "nodes"
+        ],
+        "properties": {
+          "library": {
+            "type": "object"
+          },
+          "producer": {
+            "type": "object"
+          },
+          "nodes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "facetRows": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    }
   },
   "$defs": {
-    "hasher": {"description": "the rule's meaning and local hashes, and its content hash (S1 version 2)",
-               "type": "object", "required": ["name", "meaning", "local", "content"],
-               "additionalProperties": false,
-               "properties": {"name": {"type": "string", "pattern": "^ltb-meaning/"},
-                              "meaning": {"type": "string", "pattern": "^ltb-meaning/"},
-                              "local": {"type": "string", "pattern": "^ltb-local/"},
-                              "content": {"type": "string", "pattern": "^ltb-content/"}}}
+    "hasher": {
+      "description": "each hasher's name (S1 version 2): the rule's meaning and local hashes, and its content hash",
+      "type": "object",
+      "required": [
+        "meaning",
+        "local",
+        "content"
+      ],
+      "properties": {
+        "meaning": {
+          "type": "string",
+          "pattern": "^ltb-meaning/"
+        },
+        "local": {
+          "type": "string",
+          "pattern": "^ltb-local/"
+        },
+        "content": {
+          "type": "string",
+          "pattern": "^ltb-content/"
+        }
+      }
+    }
   }
 }

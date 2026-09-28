@@ -3,23 +3,77 @@
   "$id": "https://github.com/LeanTrustBuilders/specs/schemas/decl.schema.json",
   "title": "One line of decls.jsonl (ltb-dataset/2)",
   "type": "object",
-  "required": ["id", "name", "module", "package", "scope", "kind", "isProp", "hashes"],
+  "required": [
+    "id",
+    "name",
+    "module",
+    "package",
+    "scope",
+    "kind",
+    "isProp",
+    "hashes"
+  ],
   "properties": {
-    "id": {"type": "integer", "minimum": 0},
-    "name": {"type": "string"},
-    "module": {"type": "string"},
-    "package": {"type": "string"},
-    "scope": {"enum": ["project", "upstream"]},
-    "kind": {"enum": ["theorem", "definition", "instance", "class", "structure", "inductive",
-                      "axiom", "opaque", "constructor", "recursor", "quotient"]},
-    "isProp": {"type": "boolean"},
-    "hashes": {"$ref": "#/$defs/hashes"}
+    "id": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "name": {
+      "type": "string"
+    },
+    "module": {
+      "type": "string"
+    },
+    "package": {
+      "type": "string"
+    },
+    "scope": {
+      "enum": [
+        "project",
+        "upstream"
+      ]
+    },
+    "kind": {
+      "enum": [
+        "theorem",
+        "definition",
+        "instance",
+        "class",
+        "structure",
+        "inductive",
+        "axiom",
+        "opaque"
+      ]
+    },
+    "isProp": {
+      "type": "boolean"
+    },
+    "hashes": {
+      "$ref": "#/$defs/hashes"
+    }
   },
   "$defs": {
-    "hex16": {"type": "string", "pattern": "^[0-9a-f]{16}$"},
-    "hashes": {"type": "object", "required": ["local"], "additionalProperties": false,
-               "properties": {"meaning": {"$ref": "#/$defs/hex16"},
-                              "content": {"$ref": "#/$defs/hex16"},
-                              "local": {"$ref": "#/$defs/hex16"}}}
+    "hex16": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$"
+    },
+    "hashes": {
+      "type": "object",
+      "required": [
+        "local"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "meaning": {
+          "$ref": "#/$defs/hex16"
+        },
+        "content": {
+          "$ref": "#/$defs/hex16"
+        },
+        "local": {
+          "$ref": "#/$defs/hex16"
+        }
+      }
+    }
   }
 }

@@ -16,7 +16,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install evidence-core
-        run: pip install git+https://github.com/LeanTrustBuilders/evidence-core
+        run: pip install git+https://github.com/LeanTrustBuilders/evidence-core jsonschema
       - name: Schemas parse
         run: for f in schemas/*.json; do python -c "import json; json.load(open('$f'))"; done
       - name: Vectors

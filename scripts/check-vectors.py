@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Checks the conformance vectors: dataset structure (stdlib only), records against the schema's
-required fields, and evidence-core's statuses against expected-status.json."""
+"""Checks the conformance vectors: dataset structure (stdlib only), the datasets and records against
+the JSON Schemas (with `jsonschema`, when installed), the records against evidence-core's
+validation, and evidence-core's statuses against expected-status.json."""
 import json
 import struct
 import sys
@@ -35,12 +36,39 @@ for ds, spec in (("fixture-a", "ltb-dataset/2"), ("fixture-b", "ltb-dataset/2"),
             if decls[s]["scope"] != "project":
                 errors.append(f"{ds}: edge from upstream node {decls[s]['name']}")
                 break
-    names = {d["name"] for d in decls}
+    if set(meta["hasher"]) != {"meaning", "local", "content"}:
+        errors.append(f"{ds}: hasher is not {{meaning, local, content}}")
+    # S2: at most one line per declaration; lines about nodes first, in node order, then the others
+    # by name
+    ids = {d["name"]: d["id"] for d in decls}
     for f in meta["facets"]:
-        for line in (V / ds / f["file"]).read_text().splitlines():
-            if json.loads(line)["decl"] not in names:
-                errors.append(f"{ds}: facet {f['name']} row for a non-node")
-                break
+        rows = [json.loads(line)["decl"] for line in (V / ds / f["file"]).read_text().splitlines()]
+        key = [(0, ids[n], "") if n in ids else (1, 0, n) for n in rows]
+        if len(set(rows)) != len(rows):
+            errors.append(f"{ds}: facet {f['name']} has two lines about one declaration")
+        if key != sorted(key):
+            errors.append(f"{ds}: facet {f['name']} is not in S2's order")
+        if len(rows) != f["count"]:
+            errors.append(f"{ds}: facet {f['name']} count")
+
+try:
+    import jsonschema
+except ImportError:
+    print("jsonschema not installed: skipping the schema check")
+else:
+    schema = lambda name: json.loads((root / "schemas" / name).read_text())
+    for ds in ("fixture-a", "fixture-b", "fixture-b-partial", "fixture-b-closure"):
+        for e in jsonschema.Draft202012Validator(schema("dataset-meta.schema.json")).iter_errors(
+                json.loads((V / ds / "meta.json").read_text())):
+            errors.append(f"{ds}/meta.json: {e.message}")
+        decl = jsonschema.Draft202012Validator(schema("decl.schema.json"))
+        for line in (V / ds / "decls.jsonl").read_text().splitlines():
+            for e in decl.iter_errors(json.loads(line)):
+                errors.append(f"{ds}/decls.jsonl: {e.message}")
+    record = jsonschema.Draft202012Validator(schema("evidence-record.schema.json"))
+    for line in (V / "records.jsonl").read_text().splitlines():
+        for e in record.iter_errors(json.loads(line)):
+            errors.append(f"records.jsonl: {e.message}")
 
 try:
     from evidence_core import Dataset, classify

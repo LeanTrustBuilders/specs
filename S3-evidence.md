@@ -1,10 +1,9 @@
-# S3: evidence records (`ltb-evidence/0`)
+# S3: evidence records (`ltb-evidence/1`)
 
 An **evidence record** is one judgement or fact about a declaration, asserted by a person, an agent
 or a tool: a review, a problem report, a link to a test, a proposed test (a challenge), a named
-result. Records are JSON objects,
-stored one per line (JSONL), **append-only**: a record is never edited; a later record supersedes,
-answers or resolves it.
+result. Records are JSON objects, stored one per line (JSONL), **append-only**: a record is never
+edited; a later record supersedes, answers or resolves it.
 
 Every record is **accountable**: it names the GitHub account it came from, or it is labelled as an
 AI agent's, or both. There are no anonymous records.
@@ -14,16 +13,30 @@ bot from GitHub issues and comments, or by pull requests.
 
 The design behind the review fields is in
 [`reviews.md`](https://github.com/LeanTrustBuilders/design/blob/main/AI_initial_docs/reviews.md).
-Version 0 is a draft, changed in place while only the pilots use it.
+
+## Compatibility
+
+Records are never rewritten, so what a record says must stay readable as the spec grows:
+
+* **Readers ignore** fields they do not know, and records of a kind they do not know. A reader that
+  meets a value it does not know reads a failure mode as `other`, and ignores a verdict or a state.
+* **Within a version**, fields are only added, and the values an enumeration allows only grow. No
+  field changes meaning.
+* **Failure-mode codes are stable**: a mode keeps its code, a new one takes the next free code, and
+  a retired code is never reused.
+* **A new version** is for a change that is not additive. Its readers need not read earlier
+  versions: a store moving to it is rewritten once, its records converted and their ids, and the
+  links between them, recomputed.
 
 ## Common fields
 
 | field | required | meaning |
 |---|---|---|
-| `schema` | yes | `"ltb-evidence/0"` |
+| `schema` | yes | `"ltb-evidence/1"` |
 | `kind` | yes | `review`, `comment`, `status`, `test`, `challenge` or `named` |
 | `id` | yes | the first 16 hex digits of the SHA-256 of the record's canonical form (below) |
-| `subject` | `review`, `test`, `challenge`, `named`; optional for `comment` | the S1 key of the declaration the record is about, plus `kind`: `definition`, `statement`, `instance`, `link` or `text` |
+| `subject` | `review`, `test`, `challenge`, `named`; optional for `comment` | the S1 key of the declaration the record is about (`name`, `module`, `package`, `commit`, `toolchain`, `hasher`, `hashes.meaning`, `hashes.local`), and `aspect`: what of it the record is about, `definition` (what it is), `statement` (what it states) or `instance` |
+| `text` | per kind | the record's words, in Markdown: a review's reasons, a comment, a status's note, what a test checks, a challenge's property, what a named result is |
 | `by` | yes | who made it (below) |
 | `at` | yes | when, RFC 3339 in UTC |
 | `origin` | no | where the record came from: `{kind, ref}`, e.g. `{"kind": "issue", "ref": "owner/repo#12"}` |
@@ -40,9 +53,10 @@ Version 0 is a draft, changed in place while only the pilots use it.
 | `agent` | for an agent | `{tool, model, session}`: what produced it, e.g. `{"tool": "Claude Code", "model": "claude-opus-5-5"}`; `tool` is required |
 | `involvement` | no | `author` (of the declaration), `contributor` (to the library), `outsider`, or `unknown` (the default) |
 
-**Canonical form.** The JSON encoding of the record without `id` and `signature`, with keys sorted,
-no whitespace, and non-ASCII characters written as themselves. `id` and signatures are computed over
-its UTF-8 bytes.
+**Canonical form.** The record without `id` and `signature`, in the JSON Canonicalization Scheme
+(RFC 8785). Records hold no numbers other than integers and their keys are ASCII, so this is: keys
+sorted, no whitespace, strings escaped as JSON requires and non-ASCII characters written as
+themselves. `id` and signatures are computed over its UTF-8 bytes.
 
 ## Kinds
 
@@ -51,8 +65,8 @@ its UTF-8 bytes.
 | field | required | meaning |
 |---|---|---|
 | `verdict` | yes | `accept`, `problem` or `question` |
-| `problem.category` | for problems | `F1` different object, `F2` convention, `F3` edge cases, `F4` junk value, `F5` vacuous, `F6` choice, `F7` wrong thing underneath, `F8` drift, `F9` generality, `naming`, `other` |
-| `rationale` | for problems, and for agents | why |
+| `category` | for problems | the failure mode: `F1` different object, `F2` convention, `F3` edge cases, `F4` junk value, `F5` vacuous, `F6` choice, `F7` wrong thing underneath, `F8` drift, `F9` generality, `naming`, `other` |
+| `text` | for problems, and for agents | why |
 | `reference` | encouraged | what the subject was compared with: `{text, url}` |
 | `checked` | encouraged | failure mode → `checked`, `unchecked` or `na` |
 | `caveats` | no | `[{category, note}]` |
@@ -67,14 +81,14 @@ the earlier one no longer counts.
 
 ### `comment`
 
-Discussion: `text` (Markdown), and `links.replies_to`, the record it answers or discusses. `subject`
-is that record's subject, when it has one. An answer to a question is a comment on it.
+Discussion: `text` (required), and `links.replies_to` (required), the record it answers or discusses.
+`subject` is that record's subject, when it has one. An answer to a question is a comment on it.
 
 ### `status`
 
-The state of an earlier record: `target` (a record id), `state`, and optionally `note`, `commit`
-(for `fixed`: the commit that fixed it) and `test` (for `met`: the S1 key, or at least the `name`, of
-the declaration that meets the challenge).
+The state of an earlier record: `target` (a record id) and `state` (both required), and optionally
+`text`, `commit` (for `fixed`: the commit that fixed it) and `test` (for `met`: the S1 key, or at
+least the `name`, of the declaration that meets the challenge).
 
 | state | for | meaning |
 |---|---|---|
@@ -88,14 +102,14 @@ the declaration that meets the challenge).
 | `reopened` | a problem, question or challenge | open again |
 | `withdrawn` | any record but a comment or status | its author takes it back |
 
-The latest status of a target, by `at`, is its state. A problem, question or challenge with none is
-**open**; any other record with none stands.
+The latest status of a target (by `at`, and between records with the same `at`, by `id`) is its
+state. A problem, question or challenge with none is **open**; any other record with none stands.
 
 ### `test`
 
 A declaration of the library that tests the subject: a lemma that pins it down (a value, a
-degenerate case, agreement with another notion). `test`: its S1 key, or at least its `name`;
-`checks`: what it checks (required of an agent); optionally `links.meets`, the challenge it meets.
+degenerate case, agreement with another notion). `test` (required): its S1 key, or at least its
+`name`; `text`: what it checks (required of an agent).
 
 A test is a fact the kernel keeps checking: a view shows it as **passing** while a declaration of that
 name (or, when `test` has a meaning hash, of that meaning) is in the dataset without `sorry` in its
@@ -109,11 +123,10 @@ say what would convince them it is right.
 
 | field | required | meaning |
 |---|---|---|
-| `property` | yes | what the subject should satisfy, in words (Markdown) |
+| `text` | yes | what the subject should satisfy, and why it is a good test |
 | `statement` | no | the property as a Lean statement |
 | `catches` | no | what a failure would reveal |
-| `modes` | no | the failure modes it would catch: `F1` … `F9`, `naming`, `other` (as `problem.category`) |
-| `rationale` | no | why it is a good test |
+| `modes` | no | the failure modes it would catch, as `category` |
 
 A challenge is open until a status says it was `met` (with the declaration that meets it, which the
 views then check as a test), `failed` (which is a problem with the subject, reported as its own
@@ -121,10 +134,10 @@ review), `declined` or `withdrawn`.
 
 ### `named`
 
-`name`, `what` (`result` or `definition`), `about` (a sentence), `source` (where the naming comes
-from: a URL, or `{roadmap, path}`, `{voyager, prs}` …): the subject is a named result or notable
-definition, one to read first in a library whose other declarations are mostly API and steps of
-proofs. It can be withdrawn by its author.
+`name` (required), `what` (`result` or `definition`), `text` (a sentence), `reference` (where the
+naming comes from: `{text, url}`): the subject is a named result or notable definition, one to read
+first in a library whose other declarations are mostly API and steps of proofs. It can be withdrawn
+by its author.
 
 ## Status of a record
 
@@ -132,13 +145,13 @@ Against a dataset of the current code, a record whose subject has key `k` is:
 
 | status | condition |
 |---|---|
-| `incomparable` | `k.hasher` names a different hasher revision than the dataset |
+| `incomparable` | `k.hasher.meaning` or `k.hasher.local` differs from the dataset's (S1) |
 | `unknown` | `k` has no meaning hash |
 | `current` | a node named `k.name` has meaning hash `k.hashes.meaning` |
 | `stale-underneath` | the node named `k.name` has another meaning hash but local hash `k.hashes.local` |
 | `stale` | the node named `k.name` has another local hash |
 | `unavailable` | no node is named `k.name`, and `k.module` is one of the dataset's `library.unavailable` modules (S2): it did not build at the dataset's commit, so the record cannot be checked |
-| `renamed` | no node is named `k.name`, and exactly one node (of the subject's kind, if several) has meaning hash `k.hashes.meaning` |
+| `renamed` | no node is named `k.name`, and exactly one node has meaning hash `k.hashes.meaning` (when several do, exactly one of the subject's `aspect`: `instance` for an instance, `statement` for a proof, `definition` for anything else) |
 | `orphaned` | otherwise |
 
 A record **applies** to the current code when it is `current` or `renamed`.
@@ -159,12 +172,15 @@ the records are about, or another one.
   (`owner/name`) and `root` (the library's root module); `datasets`: where the S2 datasets of the
   library's commits are, as `repo`, a release `tag` template (`"dataset-{commit12}"`, where
   `{commit12}` is the first 12 characters of the commit) and the `asset` (`dataset.tar.gz`);
-  optionally `claims` (declaration names) and `maintainers` (GitHub logins that may set statuses,
-  besides the repository's collaborators).
-* **Records** are the lines of every `*.jsonl` file under `evidence/`. The store is the set of them,
-  by `id`: the same record may appear twice; two different records with one `id` are an error.
+  optionally `claims` (declaration names: the claims, for a library that does not name its own, and
+  otherwise ignored) and `maintainers` (GitHub logins that may set statuses, besides the
+  repository's collaborators).
+* **Records** are the lines of every `*.jsonl` file under `evidence/`.
+  The store is the set of them, by `id`: the same record may appear twice; two different records with
+  one `id` are an error.
 * **Append-only**: between two commits of the store, every record of the earlier one is still
-  there, unchanged. Corrections are new records.
+  there, unchanged. Corrections are new records. (The one exception is the rewrite that moves a
+  store to a new version of this spec.)
 
 **Writing to a store.** Every record says who made it, and a store only takes a record from that
 identity:

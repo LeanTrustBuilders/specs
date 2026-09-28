@@ -13,12 +13,13 @@ carries the key of its subject; every dataset (S2) carries the key of each of it
 | `package` | string | the Lake package of that module (`lean4` for the toolchain) |
 | `commit` | string | the commit of the project the key was taken at |
 | `toolchain` | string | the Lean toolchain of that commit, e.g. `leanprover/lean4:v4.34.0-rc2` |
-| `hasher` | object | how the hashes were computed: `name` (the rule, `ltb-meaning/1`), `local` (`ltb-local/2`), `content` (`ltb-content/1`), `revision` (`null`: each name is its version) |
+| `hasher` | object | how the hashes were computed: `meaning` (the rule, `ltb-meaning/1`), `local` (`ltb-local/2`), and in a dataset `content` (`ltb-content/1`). Each name is its version |
 | `hashes.meaning` | 16 hex digits | the rule's **meaning** hash (below) |
 | `hashes.local` | 16 hex digits | the rule's **local** hash (below) |
-| `hashes.content` | 16 hex digits | the rule's **content** hash (below): proofs included |
+| `hashes.content` | 16 hex digits | in a dataset: the rule's **content** hash (below), proofs included |
 
-In a dataset, `commit`, `toolchain` and `hasher` are recorded once, in `meta.json`.
+In a dataset, `commit`, `toolchain` and `hasher` are recorded once, in `meta.json`. An evidence
+record (S3) leaves the content hash out: it decides nothing about the record.
 
 ## The three hashes
 
@@ -68,13 +69,13 @@ A record keyed at one commit is compared with a dataset of another (see S3, *Sta
 * same name, same local hash, different meaning hash: the declaration is written the same, but
   something it rests on changed (**stale underneath**);
 * same name, different local hash: the declaration itself changed (**stale**);
-* name gone, exactly one declaration with the same meaning hash (and kind): the record follows it
-  (**renamed**).
+* name gone, exactly one declaration with the same meaning hash (or, when several have it, exactly
+  one of the same aspect, S3): the record follows it (**renamed**).
 
-Hashes are comparable only when computed by the same hasher: the same rule and the same local hash
-function. A consumer must treat keys from different hashers as incomparable, and a producer
-changing either must change its identifier: a change to the rule, or to how it is computed, that
-moves any hash is a new rule name.
+Hashes are comparable only when computed by the same hasher: the same `hasher.meaning` and the same
+`hasher.local`. A consumer must treat keys from different hashers as incomparable, and a producer
+changing either must change its name: a change to the rule, or to how it is computed, that moves any
+hash is a new name.
 
 The content hash does not decide a record's status. It tells, between two datasets, a declaration
 whose meaning is unchanged but a proof in its closure changed from one where nothing changed. Two
@@ -85,71 +86,17 @@ Because the hashes follow the `meaning` graph, a record that is stale underneath
 its `meaning` closure whose meaning changed, and the closure's members whose local hash changed are
 the declarations to blame.
 
-## Keys of earlier versions
-
-A key of **version 1** has the same meaning and local hashes as version 2 (the rule `ltb-meaning/1`,
-`ltb-local/2`), so it is compared as a key of version 2. Its content hash was semantic_hash's
-proof-relevant hash, which is not comparable with `ltb-content/1`; nothing compares content hashes
-across hashers (S3's statuses do not use them).
-
-A key of **version 0** was made of semantic_hash's hashes (`hasher` `{name: "semantic_hash", revision,
-local: "ltb-local-v1"}`). Those hashes did not follow the graph: semantic_hash and the graph erased
-different proofs, so between two Tau Ceti datasets 4 declarations were stale underneath with nothing
-changed in their closure, and 335 were current although their closure had changed. Datasets no longer
-carry those hashes, so such a key is **incomparable** with them.
-
-The measurements below were made with version 0.
-
-
-## Measured on Tau Ceti (version 0)
-
-Between Tau Ceti d3aec47 and 8befae0 (428 commits in 29 hours, same toolchain and Mathlib; datasets
-by trust-extract 0.2), taking each of the 77,758 declarations of d3aec47 as if a review had been
-made of it there:
-
-| status at 8befae0 | declarations | share |
-|---|---:|---:|
-| current | 71,880 | 92.4% |
-| current, a proof in its closure changed | 4,112 | 5.3% |
-| stale underneath | 1,282 | 1.6% |
-| stale | 394 | 0.5% |
-| renamed | 21 | |
-| orphaned (removed) | 69 | |
-
-4,310 declarations were added. Against the source text at both commits:
-
-* **current**: a handful of declarations whose statement text changed are still current, rightly:
-  a name written fully qualified, or an attribute added;
-* **stale underneath**: 96% read exactly the same, as they should; most are downstream of a few
-  rewritten definitions (three rewritten weight tables are among the causes of 810, 319 and 300
-  of them);
-* **stale**: 153 read differently. 241 read the same: 106 because a `variable` line of their
-  section changed (the statement did change: stale is right, but the change is outside the
-  declaration's source range, so a page must show the elaborated statement, not only the source),
-  and 135 whose section's variables did not change either. 73 of these are in files that did not
-  change at all; in the cases examined, a constant they use changed its signature, so that the same
-  text now elaborates with other instance or implicit arguments. For a reviewer, these are closer to
-  stale underneath: nothing in the declaration was rewritten.
-
-Across a dependency bump, from 8befae0 to c59177e (16 commits, among them the move from Lean
-v4.34.0-rc2 to v4.34.0 and a Mathlib bump of 249 commits), of 81,999 declarations: 24,874 current,
-35,369 current with a proof in their closure changed, 21,493 (26%) stale underneath, 237 stale.
-Only 74 of the 15,945 upstream declarations Tau Ceti rests on were rewritten, and 28 removed; 17,076
-of the stale-underneath declarations have only such upstream causes. The largest causes include
-real refactors of definitions (`Bialgebra`'s `toBialgHom` now built from `AlgHom.ofClass`), and
-changes of signature: `MeasureTheory.eLpNorm` gained an instance argument `[TopologicalSpace ε]`, so
-`MeasureTheory.Lp`, whose source did not change, now elaborates with that argument, and its local
-hash changed with it (826 declarations rest on it).
+How the statuses fared on a real library, and why this rule replaced semantic_hash's hashes
+(version 0), is measured in the design notes (`meaning-hash.md` §8, and `dependency-testing.md` §9).
 
 ## Known limits
 
-
 * The local hash sees elaboration details: a declaration whose text is unchanged, but whose use of
   a constant now elaborates with different implicit or instance arguments (because that constant's
-  signature changed), is **stale** rather than **stale underneath** (up to 135 of 394 stale
-  declarations in the measurement above). For the same reason, the rewritten dependencies a
+  signature changed), is **stale** rather than **stale underneath** (up to a third of the stale
+  declarations, measured on Tau Ceti). For the same reason, the rewritten dependencies a
   **stale underneath** status names include such declarations besides the one really rewritten
-  (`MeasureTheory.Lp` besides `MeasureTheory.eLpNorm` above). A candidate fix is a fourth hash,
+  (`MeasureTheory.Lp` besides `MeasureTheory.eLpNorm`, which gained an instance argument). A candidate fix is a fourth hash,
   of the statement with implicit and instance arguments erased: a change of the local hash alone
   would then read as stale underneath.
 
