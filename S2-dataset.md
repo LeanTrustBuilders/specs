@@ -1,4 +1,4 @@
-# S2: the dataset (`ltb-dataset/1`)
+# S2: the dataset (`ltb-dataset/2`)
 
 A **dataset** is everything a tool needs to know about a compiled Lean project, as files, so that
 tools downstream of it need no Lean. It is written by
@@ -22,12 +22,12 @@ facets/<name>.jsonl         one file per facet
 
 | field | meaning |
 |---|---|
-| `spec` | `"ltb-dataset/1"` |
+| `spec` | `"ltb-dataset/2"` |
 | `producer` | `{name, version}` of the tool, and optionally `parts`: how many parts the work was split into, for a tool that splits it (see below) |
 | `library` | `root` (module prefix), `package`, `repo` (`owner/name`), `commit`, `dirty` (uncommitted changes when extracted), `modules` (count of the modules extracted), `unavailable` (the library's modules that were not extracted because they do not build at `commit`, with every module importing them; sorted, possibly empty) |
 | `toolchain` | the project's `lean-toolchain` |
 | `lean` | the Lean the producer ran on: `version`, `githash` |
-| `hasher` | see S1: `name` and `meaning` (the rule, `ltb-meaning/1`), `local` (`ltb-local/2`), `content` (`{name: "semantic_hash", revision, variant: "proof-relevant"}`), and `legacy`, the hasher of the version-0 hashes each node also carries (`{name: "semantic_hash", revision, meaning: "proof-irrelevant", local: "ltb-local-v1"}`) |
+| `hasher` | see S1: `name` and `meaning` (the rule, `ltb-meaning/1`), `local` (`ltb-local/2`) and `content` (`ltb-content/1`) |
 | `counts` | `nodes`, `project`, `upstream` |
 | `edges` | one entry per edge file: `name` (the notion), `file`, `format` (`i32le-pairs`), `count`, `description` |
 | `facets` | one entry per facet file: `name`, `file`, `schema` (`<facet>/<version>`), `count`, `description` |
@@ -61,7 +61,7 @@ One JSON object per line, one line per **node**, in id order:
 | `scope` | `project` (declared in the project) or `upstream` |
 | `kind` | `theorem`, `definition`, `instance`, `class`, `structure`, `inductive`, `axiom`, `opaque` |
 | `isProp` | whether the declaration is a proof (its type is a proposition) |
-| `hashes` | `meaning`, `local`, `content`: see S1; and `legacy`: `meaning`, `local`, the node's hashes under version 0 of S1, for keys of that version |
+| `hashes` | `meaning`, `local`, `content`: see S1 |
 
 **Nodes** are the project's own declarations (written by a person, private ones included; not the
 constructors, recursors, projections, matchers and other helpers the compiler generates) and the
@@ -147,6 +147,14 @@ meanings.
 Adding a facet or an edge notion does not change `spec`. Changing the meaning of an existing field,
 facet schema or notion does.
 
+`ltb-dataset/2` (September 2026) changed from `ltb-dataset/1`:
+* the content hash is the rule's (`ltb-content/1`, S1 version 2) instead of semantic_hash's, and
+  `hasher.content` is its name;
+* the version-0 hashes are gone: no `hashes.legacy`, no `hasher.legacy`.
+
+Nodes, edges, facets and the meaning and local hashes are as in version 1. A reader of version 1 can
+read version 2 if it compares content hashes only between datasets whose `hasher.content` agrees.
+
 `ltb-dataset/1` (September 2026) changed from `ltb-dataset/0`:
 * the meaning and local hashes are the rule's (S1 version 1), and each node carries its version-0
   hashes as `hashes.legacy`; `hasher` says which is which;
@@ -157,6 +165,3 @@ facet schema or notion does.
 * notation and coercion dependencies moved from `meaning` (and `statement`, `term`) to a notion of
   their own, `source`;
 * `term` looks through upstream helpers, so that its targets are declarations too.
-
-A reader of version 0 can read version 1 by ignoring `hashes.legacy`, `hasher.content` and
-`hasher.legacy`; a record keyed under version 0 is resolved as S1 says.

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/LeanTrustBuilders/specs/schemas/decl.schema.json",
-  "title": "One line of decls.jsonl (ltb-dataset/1)",
+  "title": "One line of decls.jsonl (ltb-dataset/2)",
   "type": "object",
   "required": ["id", "name", "module", "package", "scope", "kind", "isProp", "hashes"],
   "properties": {
@@ -17,12 +17,9 @@
   },
   "$defs": {
     "hex16": {"type": "string", "pattern": "^[0-9a-f]{16}$"},
-    "hashes": {"type": "object", "required": ["local"],
+    "hashes": {"type": "object", "required": ["local"], "additionalProperties": false,
                "properties": {"meaning": {"$ref": "#/$defs/hex16"},
                               "content": {"$ref": "#/$defs/hex16"},
-                              "local": {"$ref": "#/$defs/hex16"},
-                              "legacy": {"type": "object", "description": "ltb-dataset/1: the meaning and local hashes of ltb-dataset/0",
-                                         "properties": {"meaning": {"$ref": "#/$defs/hex16"},
-                                                        "local": {"$ref": "#/$defs/hex16"}}}}}
+                              "local": {"$ref": "#/$defs/hex16"}}}
   }
 }

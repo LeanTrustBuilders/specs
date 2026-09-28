@@ -1,4 +1,4 @@
-# S1: the declaration key (version 1)
+# S1: the declaration key (version 2)
 
 A **declaration key** identifies a Lean declaration *as it was at some point*, so that a judgement
 about it can later be checked against the declaration as it is now. Every evidence record (S3)
@@ -13,10 +13,10 @@ carries the key of its subject; every dataset (S2) carries the key of each of it
 | `package` | string | the Lake package of that module (`lean4` for the toolchain) |
 | `commit` | string | the commit of the project the key was taken at |
 | `toolchain` | string | the Lean toolchain of that commit, e.g. `leanprover/lean4:v4.34.0-rc2` |
-| `hasher` | object | how the meaning and local hashes were computed: `name` (the rule, `ltb-meaning/1`), `local` (`ltb-local/2`), `revision` (`null`: the rule's name is its version) |
+| `hasher` | object | how the hashes were computed: `name` (the rule, `ltb-meaning/1`), `local` (`ltb-local/2`), `content` (`ltb-content/1`), `revision` (`null`: each name is its version) |
 | `hashes.meaning` | 16 hex digits | the rule's **meaning** hash (below) |
 | `hashes.local` | 16 hex digits | the rule's **local** hash (below) |
-| `hashes.content` | 16 hex digits | semantic_hash's **proof-relevant** hash |
+| `hashes.content` | 16 hex digits | the rule's **content** hash (below): proofs included |
 
 In a dataset, `commit`, `toolchain` and `hasher` are recorded once, in `meta.json`.
 
@@ -52,8 +52,13 @@ something it uses changes. It hashes the elaborated declaration, not its text, s
 when unchanged text elaborates differently: when a `variable` in scope changes, or when a constant
 it uses changes its implicit or instance arguments (see *Known limits*).
 
-**content** is semantic_hash's proof-relevant hash, at a revision the dataset records: deep, and
-it also changes when a proof changes. trust keys its certificates by it.
+**content** (`ltb-content/1`) is the same Merkle hash with nothing erased: a declaration's content
+is then everything the kernel checked of it (a theorem's statement and proof, a definition's type and
+value, an opaque constant's type and value, an axiom's type, an inductive type's block as above),
+and every reference to a constant is replaced by that constant's content hash. It is deep through
+proofs: it changes when a proof anywhere in the declaration's closure changes, which the meaning hash
+never does, and it leaves names out as the meaning hash does. MeaningGraph's `MeaningGraph.Hash`
+computes it, in a second walk that keeps proofs.
 
 ## How keys are compared
 
@@ -71,24 +76,27 @@ function. A consumer must treat keys from different hashers as incomparable, and
 changing either must change its identifier: a change to the rule, or to how it is computed, that
 moves any hash is a new rule name.
 
+The content hash does not decide a record's status. It tells, between two datasets, a declaration
+whose meaning is unchanged but a proof in its closure changed from one where nothing changed. Two
+content hashes are comparable only when their `hasher.content` names agree; a change to what the
+content walk hashes is a new content hasher name.
+
 Because the hashes follow the `meaning` graph, a record that is stale underneath has something in
 its `meaning` closure whose meaning changed, and the closure's members whose local hash changed are
 the declarations to blame.
 
-## Keys of version 0
+## Keys of earlier versions
 
-Version 0 keyed declarations by semantic_hash's hashes: `hasher` was `{name: "semantic_hash",
-revision, local: "ltb-local-v1"}`, the meaning hash semantic_hash's proof-irrelevant hash, and the
-local hash `ltb-local-v1`. Those hashes did not follow the graph: semantic_hash and the graph erased
-different proofs (the graph read the proofs of lifted `_proof_n` lemmas and private helpers, the
-hash followed proofs written inline), so between two Tau Ceti datasets 4 declarations were stale
-underneath with nothing changed in their closure, and 335 were current although their closure had
-changed.
+A key of **version 1** has the same meaning and local hashes as version 2 (the rule `ltb-meaning/1`,
+`ltb-local/2`), so it is compared as a key of version 2. Its content hash was semantic_hash's
+proof-relevant hash, which is not comparable with `ltb-content/1`; nothing compares content hashes
+across hashers (S3's statuses do not use them).
 
-A dataset of S2's `ltb-dataset/1` carries, for each node, the version-0 hashes as `legacy`. A
-version-0 key is compared through them: re-keyed through a dataset of its own commit, which has both
-(the node of that name whose legacy meaning hash is the key's), and then compared as a key of
-version 1; or, without such a dataset, compared with the current dataset's legacy hashes.
+A key of **version 0** was made of semantic_hash's hashes (`hasher` `{name: "semantic_hash", revision,
+local: "ltb-local-v1"}`). Those hashes did not follow the graph: semantic_hash and the graph erased
+different proofs, so between two Tau Ceti datasets 4 declarations were stale underneath with nothing
+changed in their closure, and 335 were current although their closure had changed. Datasets no longer
+carry those hashes, so such a key is **incomparable** with them.
 
 The measurements below were made with version 0.
 
@@ -148,8 +156,8 @@ hash changed with it (826 declarations rest on it).
 * The content hash can depend on how an extraction was split (S2): a proof that rests on an
   auxiliary lemma Lean generated separately in several modules (`congr_simp`, equation lemmas) is
   hashed with whichever copy the environment holds. On Tau Ceti at 8befae0, 287 content hashes out
-  of 97,944 differed between 4 and 8 parts. The meaning and local hashes, which key records, did
-  not.
+  of 97,944 differed between 4 and 8 parts (measured with semantic_hash's content hash, which saw the
+  same copies). The meaning and local hashes, which key records, did not.
 * Hashes are 64-bit. A change goes unnoticed only if the new hash equals the old one, with
   probability 2⁻⁶⁴. The chance that any two of 10⁵ declarations share a meaning hash by accident,
   which would make a rename ambiguous, is about 3·10⁻¹⁰.
