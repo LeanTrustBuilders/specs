@@ -59,7 +59,8 @@ value, an opaque constant's type and value, an axiom's type, an inductive type's
 and every reference to a constant is replaced by that constant's content hash. It is deep through
 proofs: it changes when a proof anywhere in the declaration's closure changes, which the meaning hash
 never does, and it leaves names out as the meaning hash does. MeaningGraph's `MeaningGraph.Hash`
-computes it, in a second walk that keeps proofs.
+computes it, in a second walk that keeps proofs, whose edges are S2's `term` graph: the content hash
+follows the `term` graph as the meaning hash follows the `meaning` graph.
 
 ## How keys are compared
 
@@ -78,7 +79,7 @@ changing either must change its name: a change to the rule, or to how it is comp
 hash is a new name.
 
 The content hash does not decide a record's status. It tells, between two datasets, a declaration
-whose meaning is unchanged but a proof in its closure changed from one where nothing changed. Two
+whose meaning is unchanged but a proof in its `term` closure changed from one where nothing changed. Two
 content hashes are comparable only when their `hasher.content` names agree; a change to what the
 content walk hashes is a new content hasher name.
 

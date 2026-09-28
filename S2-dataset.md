@@ -80,7 +80,7 @@ leaves the project.
 |---|---|
 | `statement` | the declarations its type mentions, proofs erased |
 | `meaning` | what it means under the rule of S1: the declarations its content mentions (its statement for a proof; its statement and value for a definition; its type and constructors for an inductive type), proofs erased everywhere. The closure over these edges is what coverage is computed over, and what the meaning hash covers |
-| `term` | its type and whole value, proofs included, restricted to targets that are nodes |
+| `term` | what its content mentions with nothing erased: everything the kernel checked of it (S1, the content hash), proofs included. Restricted to targets that are nodes. The closure over these edges is what the content hash covers |
 | `source` | what its source relies on that its elaborated term does not mention: the coercion instances behind its `↑`, and for a notation, the constants it expands to. What a standalone file must bring along; not meaning |
 
 Helpers are looked through, in every notion: an edge to a helper is replaced by edges to the
