@@ -11,12 +11,18 @@ root = Path(__file__).resolve().parent.parent
 V = root / "vectors"
 errors = []
 
+
+def lines(path: Path) -> list[str]:
+    """A JSON-lines file's lines: split at "\n" only (`splitlines` also splits inside strings, at
+    Unicode line separators)."""
+    return [l for l in path.read_text(encoding="utf-8").split("\n") if l.strip()]
+
 for ds, spec in (("fixture-a", "ltb-dataset/2"), ("fixture-b", "ltb-dataset/2"),
                  ("fixture-b-partial", "ltb-dataset/2"), ("fixture-b-closure", "ltb-dataset/2")):
     meta = json.loads((V / ds / "meta.json").read_text())
     if meta.get("spec") != spec:
         errors.append(f"{ds}: spec")
-    decls = [json.loads(l) for l in (V / ds / "decls.jsonl").read_text().splitlines()]
+    decls = [json.loads(l) for l in lines(V / ds / "decls.jsonl")]
     if [d["id"] for d in decls] != list(range(len(decls))):
         errors.append(f"{ds}: ids are not 0..n-1 in order")
     if meta["counts"]["nodes"] != len(decls):
@@ -42,7 +48,7 @@ for ds, spec in (("fixture-a", "ltb-dataset/2"), ("fixture-b", "ltb-dataset/2"),
     # by name
     ids = {d["name"]: d["id"] for d in decls}
     for f in meta["facets"]:
-        rows = [json.loads(line)["decl"] for line in (V / ds / f["file"]).read_text().splitlines()]
+        rows = [json.loads(line)["decl"] for line in lines(V / ds / f["file"])]
         key = [(0, ids[n], "") if n in ids else (1, 0, n) for n in rows]
         if len(set(rows)) != len(rows):
             errors.append(f"{ds}: facet {f['name']} has two lines about one declaration")
@@ -62,11 +68,11 @@ else:
                 json.loads((V / ds / "meta.json").read_text())):
             errors.append(f"{ds}/meta.json: {e.message}")
         decl = jsonschema.Draft202012Validator(schema("decl.schema.json"))
-        for line in (V / ds / "decls.jsonl").read_text().splitlines():
+        for line in lines(V / ds / "decls.jsonl"):
             for e in decl.iter_errors(json.loads(line)):
                 errors.append(f"{ds}/decls.jsonl: {e.message}")
     record = jsonschema.Draft202012Validator(schema("evidence-record.schema.json"))
-    for line in (V / "records.jsonl").read_text().splitlines():
+    for line in lines(V / "records.jsonl"):
         for e in record.iter_errors(json.loads(line)):
             errors.append(f"records.jsonl: {e.message}")
 
