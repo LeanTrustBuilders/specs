@@ -202,9 +202,12 @@ the records are about, or another one.
   `{commit12}` is the first 12 characters of the commit) and the `asset` (`dataset.tar.gz`);
   optionally `claims` (declaration names: the claims, for a library that does not name its own, and
   otherwise ignored), `maintainers` (GitHub logins that may set statuses, besides the
-  repository's collaborators) and `rubric`, the rubric its forms ask for when it is not
+  repository's collaborators), `rubric`, the rubric its forms ask for when it is not
   `ltb-rubric/1`: `{name, axes}`, each axis `{name, check, problem}`, where `check` is what a review
-  that checked it says and `problem` names a problem on it.
+  that checked it says and `problem` names a problem on it, and `imports`: the stores whose records
+  a view of this one shows beside its own (below), each `{repo, path, ref}`, `repo` as `owner/name`,
+  `path` the store's directory (default `evidence`) and `ref` a branch, tag or commit (default the
+  repository's default branch).
 * **Records** are the lines of every `*.jsonl` file under `evidence/`.
   The store is the set of them, by `id`: the same record may appear twice; two different records with
   one `id` are an error.
@@ -234,10 +237,30 @@ states.
 [evidence-store](https://github.com/LeanTrustBuilders/evidence-store) implements intake, the checks
 and the setup of a store in a repository.
 
+## Imported records
+
+A record's key names its subject by name and meaning hash, not by library, so a record applies
+wherever its subject is a node: a review of a Mathlib definition made in one library's store applies
+to the same definition in the dataset of any library resting on it. A view of a store shows, beside
+the store's own records, those of the stores it **imports** (`imports`, above), read against the
+view's dataset as any record is, with these rules:
+
+* **Relevance.** An imported record whose subject is not a node of the dataset (its status would
+  be `orphaned`, `unavailable` or `incomparable`) is left out, with the comments and statuses about
+  it: it is about another library, or keyed by another hasher, not about a declaration removed here.
+* **Who sets a state.** A status counts for the record it targets only if it is held in the same
+  store as that record, or made by the identity that made the record. Each store's own policy
+  decides who sets states on its records (above); another store cannot.
+* **One level.** A view reads the stores it imports, not the stores they import.
+* **Provenance.** The same record in several stores is one record (by `id`), and counts as the
+  importing store's own when that store holds it. A view says which store every other record comes
+  from, and at which commit it read each imported store.
+
 ## Coverage (informative)
 
 A claim is **covered**, under a reader's policy, when every project node in its `meaning` closure
 (the claim included) has an `accept` review in force that the policy counts, and none has an open
 problem. A policy says whose reviews count: agents or not, authors or not, reviews with caveats
-or not, reviews stale underneath or not, and whether upstream nodes must be reviewed too.
+or not, reviews stale underneath or not, reviews from imported stores or not, and whether upstream
+nodes must be reviewed too.
 evidence-core implements this; the policy is the reader's choice, not part of the records.
