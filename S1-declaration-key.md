@@ -10,7 +10,7 @@ carries the key of its subject; every dataset (S2) carries the key of each of it
 |---|---|---|
 | `name` | string | the declaration's full name, e.g. `TauCeti.IdealArithmeticFunction.vonMangoldt` |
 | `module` | string | the module declaring it |
-| `package` | string | the Lake package of that module (`lean4` for the toolchain) |
+| `package` | string | the Lake package of that module, by the name its lakefile declares, whether it is the project or a dependency (`mathlib` for Mathlib, in Mathlib's own dataset too); `lean4` for the toolchain |
 | `commit` | string | the commit of the project the key was taken at |
 | `toolchain` | string | the Lean toolchain of that commit, e.g. `leanprover/lean4:v4.34.0-rc2` |
 | `hasher` | object | how the hashes were computed: `meaning` (the rule, `ltb-meaning/1`), `local` (`ltb-local/3`), and in a dataset `content` (`ltb-content/1`). Each name is its version |

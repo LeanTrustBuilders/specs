@@ -24,7 +24,7 @@ facets/<name>.jsonl         one file per facet
 |---|---|
 | `spec` | `"ltb-dataset/2"` |
 | `producer` | `{name, version}` of the tool, and optionally `parts`: how many parts the work was split into, for a tool that splits it (see below) |
-| `library` | `root` (module prefix), `package`, `repo` (`owner/name`), `commit`, `dirty` (uncommitted changes when extracted), `unavailable` (the library's modules that were not extracted because they do not build at `commit`, with every module importing them; sorted, possibly empty) |
+| `library` | `root` (module prefix), `package` (the root package's Lake name, as in S1), `repo` (`owner/name`), `commit`, `dirty` (uncommitted changes when extracted), `unavailable` (the library's modules that were not extracted because they do not build at `commit`, with every module importing them; sorted, possibly empty) |
 | `toolchain` | the project's `lean-toolchain` |
 | `lean` | the Lean the producer ran on: `version`, `githash` |
 | `hasher` | see S1: `meaning` (the rule, `ltb-meaning/1`), `local` (`ltb-local/3`) and `content` (`ltb-content/1`) |
