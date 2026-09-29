@@ -196,7 +196,9 @@ declaration are a **disagreement**, which a view shows rather than resolves.
 An **evidence store** is a directory `evidence/` in a git repository: the repository of the library
 the records are about, or another one.
 
-* `evidence/store.json` describes it: `spec` (`"ltb-evidence-store/0"`); `library`: `repo`
+* `evidence/store.json` describes it: `spec` (`"ltb-evidence-store/1"`); `name`, the store's name,
+  one line, which views show for it and for the records that come from it (`"Mathlib probability"`,
+  `"Tau Ceti"`); `library`: `repo`
   (`owner/name`) and `root` (the library's root module); `datasets`: where the S2 datasets of the
   library's commits are, as `repo`, a release `tag` template (`"dataset-{commit12}"`, where
   `{commit12}` is the first 12 characters of the commit) and the `asset` (`dataset.tar.gz`);
@@ -254,7 +256,7 @@ view's dataset as any record is, with these rules:
 * **One level.** A view reads the stores it imports, not the stores they import.
 * **Provenance.** The same record in several stores is one record (by `id`), and counts as the
   importing store's own when that store holds it. A view says which store every other record comes
-  from, and at which commit it read each imported store.
+  from, by its `name`, and at which commit it read each imported store.
 
 ## Coverage (informative)
 

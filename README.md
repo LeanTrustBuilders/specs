@@ -7,7 +7,7 @@ Every tool reads or writes these, so any tool can be replaced by another that fo
 |---|---|---|
 | [S1: declaration key](S1-declaration-key.md) | 2 | how a declaration is identified *as it was at some point*: name at a commit and toolchain, and three hashes (meaning, local, content); the meaning and local hashes follow the rule that draws the `meaning` graph (`ltb-meaning/1`), and the content hash is the same walk with proofs kept (`ltb-content/1`) |
 | [S2: dataset](S2-dataset.md) | `ltb-dataset/2` | what a tool knows about a compiled project, as files: nodes, edges by notion of dependency, and facets |
-| [S3: evidence records](S3-evidence.md) | `ltb-evidence/2` | judgements and facts about declarations, never anonymous: reviews, problem reports and questions, the discussion and statuses about them, tests, named results; the rubrics that reviews and problems name axes of (`ltb-rubric/1` suggested); and the evidence stores that hold them (`ltb-evidence-store/0`) |
+| [S3: evidence records](S3-evidence.md) | `ltb-evidence/2` | judgements and facts about declarations, never anonymous: reviews, problem reports and questions, the discussion and statuses about them, tests, named results; the rubrics that reviews and problems name axes of (`ltb-rubric/1` suggested); and the evidence stores that hold them (`ltb-evidence-store/1`, with a name each) |
 
 The design they come from is in
 [LeanTrustBuilders/design](https://github.com/LeanTrustBuilders/design/tree/main/AI_initial_docs),
