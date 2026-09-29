@@ -1,4 +1,4 @@
-# S3: evidence records (`ltb-evidence/1`)
+# S3: evidence records (`ltb-evidence/2`)
 
 An **evidence record** is one judgement or fact about a declaration, asserted by a person, an agent
 or a tool: a review, a problem report, a link to a test, a proposed test (a challenge), a named
@@ -19,11 +19,12 @@ The design behind the review fields is in
 Records are never rewritten, so what a record says must stay readable as the spec grows:
 
 * **Readers ignore** fields they do not know, and records of a kind they do not know. A reader that
-  meets a value it does not know reads a failure mode as `other`, and ignores a verdict or a state.
+  meets a value it does not know ignores a verdict or a state, and shows an axis of a rubric it does
+  not know by its name.
 * **Within a version**, fields are only added, and the values an enumeration allows only grow. No
   field changes meaning.
-* **Failure-mode codes are stable**: a mode keeps its code, a new one takes the next free code, and
-  a retired code is never reused.
+* **Rubrics are versioned**: within a version of a rubric (below), axes are only added, and none
+  changes meaning. Any other change is a new version of the rubric.
 * **A new version** is for a change that is not additive. Its readers need not read earlier
   versions: a store moving to it is rewritten once, its records converted and their ids, and the
   links between them, recomputed.
@@ -32,7 +33,7 @@ Records are never rewritten, so what a record says must stay readable as the spe
 
 | field | required | meaning |
 |---|---|---|
-| `schema` | yes | `"ltb-evidence/1"` |
+| `schema` | yes | `"ltb-evidence/2"` |
 | `kind` | yes | `review`, `comment`, `status`, `test`, `challenge` or `named` |
 | `id` | yes | the first 16 hex digits of the SHA-256 of the record's canonical form (below) |
 | `subject` | `review`, `test`, `challenge`, `named`; optional for `comment` | the S1 key of the declaration the record is about (`name`, `module`, `package`, `commit`, `toolchain`, `hasher`, `hashes.meaning`, `hashes.local`), and `aspect`: what of it the record is about, `definition` (what it is), `statement` (what it states) or `instance` |
@@ -40,6 +41,7 @@ Records are never rewritten, so what a record says must stay readable as the spe
 | `by` | yes | who made it (below) |
 | `at` | yes | when, RFC 3339 in UTC |
 | `origin` | no | where the record came from: `{kind, ref}`, e.g. `{"kind": "issue", "ref": "owner/repo#12"}` |
+| `rubric` | when the record names an axis | the rubric that `category`, `checked`, `caveats` and `modes` name axes of (Rubrics, below), e.g. `"ltb-rubric/1"` |
 | `links` | no | `supersedes`, `replies_to`: record ids |
 | `migration` | no | for records converted from another tool: `from`, and `hashes_from` when the subject's hashes were taken at another commit than `subject.commit` |
 | `signature` | no | reserved for signed records |
@@ -65,15 +67,12 @@ themselves. `id` and signatures are computed over its UTF-8 bytes.
 | field | required | meaning |
 |---|---|---|
 | `verdict` | yes | `accept`, `problem` or `question` |
-| `category` | for problems | the failure mode: `F1` different object, `F2` convention, `F3` edge cases, `F4` junk value, `F5` vacuous, `F6` choice, `F7` wrong thing underneath, `F8` drift, `F9` generality, `naming`, `other` |
+| `category` | for problems | what is wrong: an axis, or `other` |
 | `text` | for problems, and for agents | why |
 | `reference` | encouraged | what the subject was compared with: `{text, url}` |
-| `checked` | encouraged | failure mode → `checked`, `unchecked` or `na` |
-| `caveats` | no | `[{category, note}]` |
+| `checked` | encouraged | axis → `checked`, `unchecked` or `na` |
+| `caveats` | no | `[{category, note}]`, `category` as above |
 | `fix` | no | for problems: a suggested fix (Markdown, often Lean) |
-
-The failure modes are those of
-[`trusting-definitions.md`](https://github.com/LeanTrustBuilders/design/blob/main/AI_initial_docs/trusting-definitions.md) §2.
 
 A later review by the same identity (and, for an agent, the same tool and model) on the same
 declaration can name the earlier one in `links.supersedes`: it is that reviewer's current view, and
@@ -126,7 +125,7 @@ say what would convince them it is right.
 | `text` | yes | what the subject should satisfy, and why it is a good test |
 | `statement` | no | the property as a Lean statement |
 | `catches` | no | what a failure would reveal |
-| `modes` | no | the failure modes it would catch, as `category` |
+| `modes` | no | the axes on which it would catch a failure |
 
 A challenge is open until a status says it was `met` (with the declaration that meets it, which the
 views then check as a test), `failed` (which is a problem with the subject, reported as its own
@@ -138,6 +137,35 @@ review), `declined` or `withdrawn`.
 naming comes from: `{text, url}`): the subject is a named result or notable definition, one to read
 first in a library whose other declarations are mostly API and steps of proofs. It can be withdrawn
 by its author.
+
+## Rubrics
+
+A **rubric** is a list of **axes**: the ways a declaration can fail to mean what it should, which a
+review says it checked and a problem says is wrong. An axis is named with lowercase ASCII letters,
+digits and hyphens, starting with a letter. `other` is not an axis of any rubric: as a `category`, it
+says that what is wrong is on none of them.
+
+A rubric's name carries its version, as the hashers of S1 do. This spec suggests one, below; a store
+may ask for another (its `store.json`, below), and a record says which one it used in `rubric`.
+
+### `ltb-rubric/1`
+
+| axis | a review that checked it says | a problem on it |
+|---|---|---|
+| `object` | it is the intended notion, or states the intended result, and not a different one | a different object |
+| `convention` | it follows the source's conventions: normalization, indexing, signs, and the instances it picks up | a different convention |
+| `edge-cases` | it decides degenerate and boundary inputs as the source does | different edge cases |
+| `junk` | no default value outside the intended domain changes what it means | a junk value |
+| `vacuous` | it is neither vacuous nor trivial | vacuous or trivial |
+| `choice` | it makes no arbitrary choice where the intended object is canonical | an arbitrary choice |
+| `generality` | it is as general as the source | less general than the source |
+| `naming` | its name and docstring do not mislead | a misleading name or docstring |
+
+These are the failure modes of
+[`trusting-definitions.md`](https://github.com/LeanTrustBuilders/design/blob/main/AI_initial_docs/trusting-definitions.md)
+§2 but two. What a declaration rests on is not an axis: the declarations underneath are nodes with
+reviews of their own, and coverage asks for all of them. Drift is not an axis: a review that the
+code has changed under is `stale` or `stale-underneath` (below).
 
 ## Status of a record
 
@@ -173,8 +201,10 @@ the records are about, or another one.
   library's commits are, as `repo`, a release `tag` template (`"dataset-{commit12}"`, where
   `{commit12}` is the first 12 characters of the commit) and the `asset` (`dataset.tar.gz`);
   optionally `claims` (declaration names: the claims, for a library that does not name its own, and
-  otherwise ignored) and `maintainers` (GitHub logins that may set statuses, besides the
-  repository's collaborators).
+  otherwise ignored), `maintainers` (GitHub logins that may set statuses, besides the
+  repository's collaborators) and `rubric`, the rubric its forms ask for when it is not
+  `ltb-rubric/1`: `{name, axes}`, each axis `{name, check, problem}`, where `check` is what a review
+  that checked it says and `problem` names a problem on it.
 * **Records** are the lines of every `*.jsonl` file under `evidence/`.
   The store is the set of them, by `id`: the same record may appear twice; two different records with
   one `id` are an error.
